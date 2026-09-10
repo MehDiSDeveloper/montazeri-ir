@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block content %}
+
+{# ── hero ──────────────────────────────────────────────────────────────── #}
+<section class="hero">
+  <div class="shell hero-grid">
+    <div>
+      {% if profile.is_available and profile|tr:"availability" %}
+        <span class="pill"><span class="pill-dot live"></span>{{ profile|tr:"availability" }}</span>
+      {% endif %}
+
+      <h1>{{ profile|tr:"full_name" }}</h1>
+      <p class="hero-role">{{ profile|tr:"headline" }}</p>
+      <p class="hero-intro">{{ profile|tr:"intro" }}</p>
+
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="{% url 'project_list' %}">
+          {% t "home.view_work" %}
+          <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </a>
+        <a class="btn btn-ghost" href="{% url 'contact' %}">{% t "home.contact_me" %}</a>
+        {% if profile.resume_file %}
+          <a class="btn btn-quiet" href="{{ profile.resume_file.url }}" download>
+            <svg aria-hidden="true"><use href="#i-download"></use></svg>
+            {% t "home.download_resume" %}
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="hero-meta">
+        {% if profile|tr:"location" %}
+          <span><svg aria-hidden="true"><use href="#i-pin"></use></svg>{{ profile|tr:"location" }}</span>
+        {% endif %}
+        {% if profile.email %}
+          <span><svg aria-hidden="true"><use href="#i-mail"></use></svg><span class="mono">{{ profile.email }}</span></span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="portrait">
+      <div class="portrait-field">
+        {% if profile.avatar %}
+          <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="320" height="320">
+        {% else %}
+          <span class="portrait-initials">{{ profile.full_name_en|default:"MM"|initials }}</span>
+        {% endif %}
+      </div>
+      {% if project_total %}
+        <span class="portrait-badge">
+          <span class="num">{{ project_total|fa_num }}</span> {% t "projects.count" %}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{# ── this week ─────────────────────────────────────────────────────────── #}
+{% if profile|tr:"now" %}
+<section class="sec" style="padding-block-start:0">
+  <div class="shell">
+    <div class="now-strip reveal">
+      <span class="label">{% t "home.now" %}</span>
+      <p>{{ profile|tr:"now" }}</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── selected work ─────────────────────────────────────────────────────── #}
+{% if featured_projects %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">01 — Work</span>
+        <h2 class="sec-title">{% t "home.selected_work" %}</h2>
+      </div>
+      <a class="more" href="{% url 'project_list' %}">
+        {% t "home.all_projects" %}
+        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+      </a>
+    </div>
+
+    <div class="grid-projects">
+      {% for project in featured_projects %}
+        {% include "partials/project_card.html" with project=project index=forloop.counter %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── skills ────────────────────────────────────────────────────────────── #}
+{% if skill_groups %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">02 — Toolbox</span>
+        <h2 class="sec-title">{% t "home.skills" %}</h2>
+      </div>
+    </div>
+    <div class="skill-groups">
+      {% for group in skill_groups %}
+        <div class="skill-group reveal">
+          <h3>{{ group|tr:"name" }}</h3>
+          <ul class="skill-list">
+            {% for skill in group.skills.all %}
+              <li{% if skill.is_primary %} class="is-primary"{% endif %}>{{ skill.name }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── career ────────────────────────────────────────────────────────────── #}
+{% if experiences %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">03 — Path</span>
+        <h2 class="sec-title">{% t "home.experience" %}</h2>
+      </div>
+      <a class="more" href="{% url 'resume' %}">
+        {% t "home.full_resume" %}
+        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+      </a>
+    </div>
+    <ul class="timeline">
+      {% for item in experiences %}
+        {% include "partials/timeline_item.html" with item=item %}
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{# ── writing ───────────────────────────────────────────────────────────── #}
+{% if posts %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">04 — Writing</span>
+        <h2 class="sec-title">{% t "home.writing" %}</h2>
+      </div>
+      <a class="more" href="{% url 'post_list' %}">
+        {% t "home.all_writing" %}
+        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+      </a>
+    </div>
+    <div class="post-list">
+      {% for post in posts %}
+        {% include "partials/post_row.html" with post=post %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{# ── contact band ──────────────────────────────────────────────────────── #}
+<section class="sec">
+  <div class="shell">
+    <div class="cta reveal">
+      <div>
+        <h2>{% t "home.cta_title" %}</h2>
+        <p>{% t "home.cta_body" %}</p>
+      </div>
+      <div class="hero-cta" style="margin-top:0">
+        <a class="btn btn-primary" href="{% url 'contact' %}">{% t "home.contact_me" %}</a>
+        <a class="btn btn-ghost" href="{% url 'card' %}">{% t "nav.card" %}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

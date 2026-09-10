@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{% t "resume.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+
+{% block content %}
+{% comment %}The web résumé and the printed one are the same document — one template, one
+   set of rows, with a @media print block in site.css doing the rest. There is
+   no second copy to fall out of step with the site.{% endcomment %}
+<section class="page-head">
+  <div class="shell">
+    <div class="sec-head">
+      <div>
+        <span class="eyebrow">{% t "resume.title" %}</span>
+        <h1>{{ profile|tr:"full_name" }}</h1>
+        <p class="sec-lede">{{ profile|tr:"headline" }}</p>
+      </div>
+      <div class="linkrow no-print" style="margin-top:0">
+        <button class="btn btn-ghost" type="button" onclick="window.print()">
+          <svg aria-hidden="true"><use href="#i-print"></use></svg>{% t "resume.print" %}
+        </button>
+        {% if profile.resume_file %}
+          <a class="btn btn-quiet" href="{{ profile.resume_file.url }}" download>
+            <svg aria-hidden="true"><use href="#i-download"></use></svg>PDF
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <dl class="factbar">
+      {% if profile.email %}<div><dt>Email</dt><dd class="mono">{{ profile.email }}</dd></div>{% endif %}
+      {% if profile.phone %}<div><dt>{% t "contact.title" %}</dt><dd class="mono">{{ profile.phone }}</dd></div>{% endif %}
+      {% if profile|tr:"location" %}<div><dt>Location</dt><dd>{{ profile|tr:"location" }}</dd></div>{% endif %}
+      {% if profile.github %}<div><dt>GitHub</dt><dd class="mono">{{ profile.github }}</dd></div>{% endif %}
+    </dl>
+  </div>
+</section>
+
+{% if work %}
+<section class="sec" style="padding-block-start:0">
+  <div class="shell">
+    <div class="sec-head"><div><span class="eyebrow">Experience</span><h2 class="sec-title">{% t "about.work" %}</h2></div></div>
+    <ul class="timeline">{% for item in work %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ul>
+  </div>
+</section>
+{% endif %}
+
+{% if education %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head"><div><span class="eyebrow">Education</span><h2 class="sec-title">{% t "about.education" %}</h2></div></div>
+    <ul class="timeline">{% for item in education %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ul>
+  </div>
+</section>
+{% endif %}
+
+{% if skill_groups %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head"><div><span class="eyebrow">Toolbox</span><h2 class="sec-title">{% t "home.skills" %}</h2></div></div>
+    <div class="skill-groups">
+      {% for group in skill_groups %}
+        <div class="skill-group">
+          <h3>{{ group|tr:"name" }}</h3>
+          <ul class="skill-list">{% for skill in group.skills.all %}<li>{{ skill.name }}</li>{% endfor %}</ul>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if projects %}
+<section class="sec">
+  <div class="shell">
+    <div class="sec-head"><div><span class="eyebrow">Work</span><h2 class="sec-title">{% t "home.selected_work" %}</h2></div></div>
+    <ul class="timeline">
+      {% for project in projects %}
+        <li class="tl-item">
+          <div class="tl-when">{% if project.year %}{{ project.year|fa_num }}{% endif %}{% if project.stack %} · <span class="mono">{{ project.stack }}</span>{% endif %}</div>
+          <h3 class="tl-role">{{ project|tr:"title" }}</h3>
+          <div class="tl-desc">{{ project|tr:"summary" }}</div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

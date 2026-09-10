@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{% t "contact.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{% t "contact.lede" %}{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div class="shell">
+    <span class="eyebrow">Contact</span>
+    <h1>{% t "contact.title" %}</h1>
+    <p class="sec-lede">{% t "contact.lede" %}</p>
+  </div>
+</section>
+
+<section class="sec" style="padding-block-start:0">
+  <div class="shell contact-grid">
+
+    {% comment %}Direct channels first: most people who open this page want an address,
+       not a form. Each row copies itself with one tap.{% endcomment %}
+    <div>
+      <div class="sec-head" style="margin-bottom:14px">
+        <div><span class="eyebrow">{% t "contact.direct" %}</span></div>
+      </div>
+      <ul class="channels">
+        {% for link in profile.links %}
+          <li class="channel">
+            <span class="channel-ico"><svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg></span>
+            <span class="channel-txt">
+              <b>{{ link.key|capfirst }}</b>
+              <span>{{ link.label }}</span>
+            </span>
+            <a class="copy-btn" href="{{ link.href }}" target="_blank" rel="noopener" aria-label="{{ link.label }}">
+              <svg aria-hidden="true"><use href="#i-external"></use></svg>
+            </a>
+            <button class="copy-btn" type="button" data-copy="{{ link.copy }}"
+                    data-copied-label="{% t 'contact.copied' %}" aria-label="{% t 'contact.copy' %}">
+              <svg aria-hidden="true"><use href="#i-copy"></use></svg>
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <a class="btn btn-ghost" href="{% url 'card' %}" style="margin-top:16px;width:100%">
+        <svg aria-hidden="true"><use href="#i-doc"></use></svg>{% t "card.title" %}
+      </a>
+    </div>
+
+    <div>
+      <div class="sec-head" style="margin-bottom:14px">
+        <div><span class="eyebrow">{% t "contact.form" %}</span></div>
+      </div>
+
+      {% if sent %}
+        <div class="note" style="margin-bottom:16px">
+          <svg aria-hidden="true"><use href="#i-check"></use></svg>
+          <span>{% t "contact.sent" %}</span>
+        </div>
+      {% endif %}
+      {% if throttled %}
+        <div class="note warn" style="margin-bottom:16px">
+          <svg aria-hidden="true"><use href="#i-info"></use></svg>
+          <span>{% t "contact.too_fast" %}</span>
+        </div>
+      {% endif %}
+
+      <form class="form" method="post" action="{% url 'contact' %}" novalidate>
+        {% csrf_token %}
+
+        {# The honeypot. A human never sees it; a bot fills every field it finds. #}
+        <div style="position:absolute;left:-9999px" aria-hidden="true">
+          <label for="id_website">Website</label>
+          <input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="id_name">{% t "contact.name" %}</label>
+            <input type="text" name="name" id="id_name" required maxlength="120"
+                   value="{{ form.name.value|default:'' }}" autocomplete="name">
+            {% for e in form.name.errors %}<span class="err">{{ e }}</span>{% endfor %}
+          </div>
+          <div class="field">
+            <label for="id_email">{% t "contact.email" %}</label>
+            <input type="email" name="email" id="id_email" required dir="ltr"
+                   value="{{ form.email.value|default:'' }}" autocomplete="email">
+            {% for e in form.email.errors %}<span class="err">{{ e }}</span>{% endfor %}
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="id_subject">{% t "contact.subject" %}</label>
+          <input type="text" name="subject" id="id_subject" maxlength="160" value="{{ form.subject.value|default:'' }}">
+        </div>
+
+        <div class="field">
+          <label for="id_body">{% t "contact.message" %}</label>
+          <textarea name="body" id="id_body" rows="6" required maxlength="4000">{{ form.body.value|default:'' }}</textarea>
+          {% for e in form.body.errors %}<span class="err">{{ e }}</span>{% endfor %}
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="justify-self:start">
+          {% t "contact.send" %}
+          <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

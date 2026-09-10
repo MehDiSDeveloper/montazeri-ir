@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{{ project|tr:"title" }} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{{ project|tr:"summary" }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ project|tr:"title" }}{% endblock %}
+{% block og_description %}{{ project|tr:"summary" }}{% endblock %}
+{% block og_image %}{% if project.cover %}<meta property="og:image" content="{{ site_url }}{{ project.cover.url }}">{% else %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block content %}
+<article>
+  <section class="page-head">
+    <div class="shell narrow">
+      <a class="crumb" href="{% url 'project_list' %}">
+        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        {% t "projects.back" %}
+      </a>
+      <h1>{{ project|tr:"title" }}</h1>
+      <p class="sec-lede">{{ project|tr:"summary" }}</p>
+
+      {% if project.tags.all %}
+        <div class="chipbar" style="margin-top:16px">
+          {% for tag in project.tags.all %}<span class="tag">{{ tag|tr:"name" }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      {# The facts a reader scans for before deciding to read the prose. #}
+      <dl class="factbar">
+        {% if project.year %}
+          <div><dt>{% t "projects.year" %}</dt><dd class="num">{{ project.year|fa_num }}</dd></div>
+        {% endif %}
+        {% if project|tr:"role" %}
+          <div><dt>{% t "projects.role" %}</dt><dd>{{ project|tr:"role" }}</dd></div>
+        {% endif %}
+        {% if project.stack_list %}
+          <div><dt>{% t "projects.stack" %}</dt><dd class="mono">{{ project.stack }}</dd></div>
+        {% endif %}
+        {% if project|tr:"outcome" %}
+          <div><dt>{% t "projects.outcome" %}</dt><dd>{{ project|tr:"outcome" }}</dd></div>
+        {% endif %}
+      </dl>
+
+      {% if project.repo_url or project.demo_url %}
+        <div class="linkrow">
+          {% if project.demo_url %}
+            <a class="btn btn-primary" href="{{ project.demo_url }}" target="_blank" rel="noopener">
+              <svg aria-hidden="true"><use href="#i-external"></use></svg>{% t "projects.demo" %}
+            </a>
+          {% endif %}
+          {% if project.repo_url %}
+            <a class="btn btn-ghost" href="{{ project.repo_url }}" target="_blank" rel="noopener">
+              <svg aria-hidden="true"><use href="#i-github"></use></svg>{% t "projects.repo" %}
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if project.cover %}
+    <div class="shell" style="margin-bottom:40px">
+      <img src="{{ project.cover.url }}" alt="{{ project|tr:'title' }}"
+           style="width:100%;border-radius:var(--r-xl);border:1px solid var(--line);box-shadow:var(--shadow-2)">
+    </div>
+  {% endif %}
+
+  <section class="sec" style="padding-block-start:0">
+    <div class="shell narrow">
+      {% if project|tr:"problem" %}
+        <h2 class="sec-title" style="font-size:var(--step-2);margin-bottom:12px">{% t "projects.problem" %}</h2>
+        <div class="prose" style="margin-bottom:40px">{{ project|md:"problem" }}</div>
+      {% endif %}
+      <div class="prose">{{ project|md:"body" }}</div>
+    </div>
+  </section>
+
+  {% if next_project %}
+    <section class="sec" style="padding-block-start:0">
+      <div class="shell">
+        <div class="sec-head"><span class="eyebrow">{% t "projects.next" %}</span></div>
+        <div class="grid-projects" style="grid-template-columns:minmax(0,1fr)">
+          {% include "partials/project_card.html" with project=next_project index=1 %}
+        </div>
+      </div>
+    </section>
+  {% endif %}
+</article>
+{% endblock %}

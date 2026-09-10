@@ -1,0 +1,27 @@
+{% load site_tags %}
+{% comment %}
+One card, used by the home page, the project list and nothing else. The cover
+is the same box whether or not there is an image: when `cover` lands it fills
+the box, and when it does not the project's index sits there in the display
+face over the pastel field. Nothing around it moves either way.
+{% endcomment %}
+<a class="pcard reveal" href="{{ project.get_absolute_url }}" data-tags="{% for tag in project.tags.all %}{{ tag.slug }} {% endfor %}">
+  <div class="pcard-cover">
+    {% if project.cover %}
+      <img src="{{ project.cover.url }}" alt="" loading="lazy" width="480" height="300">
+    {% else %}
+      <span class="pcard-index" aria-hidden="true">{{ index|stringformat:"02d" }}</span>
+    {% endif %}
+    {% if project.year %}<span class="pcard-year num">{{ project.year|fa_num }}</span>{% endif %}
+  </div>
+
+  <div class="pcard-body">
+    <h3 class="pcard-title">{{ project|tr:"title" }}</h3>
+    <p class="pcard-sum">{{ project|tr:"summary" }}</p>
+    {% if project.stack_list %}
+      <div class="pcard-stack">
+        {% for item in project.stack_list|slice:":4" %}<i>{{ item }}</i>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</a>

@@ -1,0 +1,160 @@
+{% load static site_tags %}<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ text_dir }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <title>{% block title %}{{ profile|tr:"full_name" }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{{ profile|tr:"headline" }}{% endblock %}">
+  <meta name="author" content="{{ profile|tr:"full_name" }}">
+
+  {% comment %}The reader's own language is canonical; the other two are alternates, so a
+     search engine indexes three real pages instead of guessing at duplicates.{% endcomment %}
+  <link rel="canonical" href="{{ site_url }}{{ request.path }}">
+  {% for l in language_links %}
+    <link rel="alternate" hreflang="{{ l.code }}" href="{{ site_url }}{{ l.url }}">
+  {% endfor %}
+  <link rel="alternate" hreflang="x-default" href="{{ site_url }}{{ request.path }}">
+  <link rel="alternate" type="application/rss+xml" title="{{ profile|tr:"full_name" }}" href="{% url 'feed' %}">
+
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ profile|tr:"full_name" }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ profile|tr:"headline" }}{% endblock %}">
+  <meta property="og:url" content="{{ site_url }}{{ request.path }}">
+  <meta property="og:locale" content="{{ lang }}">
+  {% block og_image %}{% if profile.avatar %}<meta property="og:image" content="{{ site_url }}{{ profile.avatar.url }}">{% endif %}{% endblock %}
+  <meta name="twitter:card" content="summary_large_image">
+
+  <meta name="theme-color" content="#f7f3eb">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+
+  {% comment %}Pre-paint, blocking, on purpose: deferring the stored theme to app.js
+     repaints one frame in, which is exactly the flash this prevents.
+     The key here and STORE_THEME in app.js are the same string.{% endcomment %}
+  <script>
+    (function () {
+      try {
+        var v = localStorage.getItem("montazeri-theme");
+        if (v === "dark" || v === "light") document.documentElement.setAttribute("data-theme", v);
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  {% block head_extra %}{% endblock %}
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "{{ profile|tr:"full_name"|escapejs }}",
+    "jobTitle": "{{ profile|tr:"headline"|escapejs }}",
+    "url": "{{ site_url }}"{% if profile.email %},
+    "email": "{{ profile.email|escapejs }}"{% endif %}{% if profile|tr:"location" %},
+    "address": {"@type": "PostalAddress", "addressLocality": "{{ profile|tr:"location"|escapejs }}"}{% endif %}{% if profile.github or profile.linkedin %},
+    "sameAs": [{% if profile.github %}"https://github.com/{{ profile.github|escapejs }}"{% endif %}{% if profile.github and profile.linkedin %}, {% endif %}{% if profile.linkedin %}"https://linkedin.com/in/{{ profile.linkedin|escapejs }}"{% endif %}]{% endif %}
+  }
+  </script>
+</head>
+
+<body dir="{{ text_dir }}">
+  {% include "partials/icons.html" %}
+
+  <a class="skip" href="#main">{% t "nav.skip" %}</a>
+
+  <header class="hdr">
+    <div class="shell">
+      <div class="hdr-in">
+        <a class="brand" href="{% url 'home' %}">
+          <span class="brand-mark" aria-hidden="true">MM</span>
+          <span class="brand-name">
+            {{ profile|tr:"full_name" }}
+            <small>{{ profile|tr:"headline"|truncatechars:34 }}</small>
+          </span>
+        </a>
+
+        <nav class="nav" aria-label="{% t 'nav.menu' %}">
+          <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
+          <a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>
+          <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
+          <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
+          <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
+        </nav>
+
+        <div class="hdr-tools">
+          <button class="icon-btn" type="button" data-cmdk-open aria-label="{% t 'cmd.open' %}" title="Ctrl + K">
+            <svg aria-hidden="true"><use href="#i-search"></use></svg>
+          </button>
+
+          <button class="icon-btn" type="button" data-theme-cycle
+                  aria-label="{% t 'nav.theme' %}"
+                  data-label-system="{% t 'theme.system' %}"
+                  data-label-light="{% t 'theme.light' %}"
+                  data-label-dark="{% t 'theme.dark' %}">
+            <svg aria-hidden="true"><use href="#i-theme"></use></svg>
+          </button>
+
+          <div class="lang" data-popover>
+            <button class="icon-btn lang-btn" type="button" data-popover-btn aria-expanded="false" aria-haspopup="true">
+              <svg aria-hidden="true"><use href="#i-globe"></use></svg>
+              <span class="mono">{{ lang|upper }}</span>
+            </button>
+            <div class="lang-menu" data-popover-menu hidden role="menu">
+              {% for l in language_links %}
+                <a href="{{ l.url }}" role="menuitem" {% if l.is_active %}aria-current="true"{% endif %}>
+                  <span>{{ l.native }}</span><span class="code">{{ l.code|upper }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+
+          <button class="icon-btn burger" type="button" data-burger aria-expanded="false" aria-label="{% t 'nav.menu' %}">
+            <svg aria-hidden="true"><use href="#i-menu"></use></svg>
+          </button>
+        </div>
+      </div>
+
+      <nav class="mnav" data-mnav hidden aria-label="{% t 'nav.menu' %}">
+        <a href="{% url 'home' %}" class="{% active 'home' %}">{% t "nav.home" %}</a>
+        <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
+        <a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>
+        <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
+        <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
+        <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
+        <a href="{% url 'card' %}" class="{% active 'card' %}">{% t "nav.card" %}</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="ftr no-print">
+    <div class="shell ftr-in">
+      <div class="ftr-links">
+        <a href="{% url 'project_list' %}">{% t "nav.projects" %}</a>
+        <a href="{% url 'post_list' %}">{% t "nav.writing" %}</a>
+        <a href="{% url 'about' %}">{% t "nav.about" %}</a>
+        <a href="{% url 'card' %}">{% t "nav.card" %}</a>
+        <a href="{% url 'contact' %}">{% t "nav.contact" %}</a>
+        <a href="{% url 'feed' %}">RSS</a>
+      </div>
+      <small>© {% now "Y" %} {{ profile|tr:"full_name" }} — {% t "footer.rights" %}</small>
+    </div>
+  </footer>
+
+  {% comment %}Command palette. The index ships with the page, so opening it costs
+     nothing and it can never disagree with what the site actually has.{% endcomment %}
+  <div class="cmdk" data-cmdk hidden data-empty="{% t 'cmd.empty' %}">
+    <div class="cmdk-scrim"></div>
+    <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="{% t 'cmd.open' %}">
+      <input class="cmdk-input" type="text" placeholder="{% t 'cmd.placeholder' %}" autocomplete="off" spellcheck="false">
+      <div class="cmdk-list"></div>
+    </div>
+  </div>
+  {{ cmdk_index|json_script:"cmdk-data" }}
+
+  <script src="{% static 'js/app.js' %}" defer></script>
+</body>
+</html>

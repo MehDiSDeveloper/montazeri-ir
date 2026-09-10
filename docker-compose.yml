@@ -1,0 +1,11 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # The whole persistent world of this app is one directory.
+      - ./data:/app/data
+    restart: unless-stopped

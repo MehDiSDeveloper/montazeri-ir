@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{{ post|tr:"title" }} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{{ post|tr:"excerpt" }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ post|tr:"title" }}{% endblock %}
+{% block og_description %}{{ post|tr:"excerpt" }}{% endblock %}
+{% block og_image %}{% if post.cover %}<meta property="og:image" content="{{ site_url }}{{ post.cover.url }}">{% else %}{{ block.super }}{% endif %}{% endblock %}
+
+{% block content %}
+<article>
+  <section class="page-head">
+    <div class="shell narrow">
+      <a class="crumb" href="{% url 'post_list' %}">
+        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        {% t "blog.back" %}
+      </a>
+      <h1>{{ post|tr:"title" }}</h1>
+      <div class="post-foot" style="margin-top:14px">
+        <time class="post-when" datetime="{{ post.published_at|iso }}">{{ post.published_at|smart_date:"day-month-year" }}</time>
+        <span class="post-when num">· {{ post.reading_minutes|fa_num }} {% t "blog.read_time" %}</span>
+        {% for tag in post.tags.all %}<span class="tag is-lilac">{{ tag|tr:"name" }}</span>{% endfor %}
+      </div>
+    </div>
+  </section>
+
+  {% if post.cover %}
+    <div class="shell narrow" style="margin-bottom:36px">
+      <img src="{{ post.cover.url }}" alt="" style="width:100%;border-radius:var(--r-xl);border:1px solid var(--line)">
+    </div>
+  {% endif %}
+
+  <section class="sec" style="padding-block-start:0">
+    <div class="shell narrow">
+      <div class="prose">{{ post|md:"body" }}</div>
+
+      <div class="linkrow no-print" style="margin-top:44px;padding-top:24px;border-top:1px solid var(--line)">
+        <button class="btn btn-ghost" type="button"
+                data-share="{{ site_url }}{{ post.get_absolute_url }}"
+                data-copied-label="{% t 'contact.copied' %}">
+          <svg aria-hidden="true"><use href="#i-share"></use></svg>{% t "blog.share" %}
+        </button>
+        <a class="btn btn-quiet" href="{% url 'post_list' %}">{% t "blog.back" %}</a>
+      </div>
+    </div>
+  </section>
+</article>
+{% endblock %}

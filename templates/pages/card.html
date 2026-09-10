@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{% t "card.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{{ profile|tr:"headline" }}{% endblock %}
+
+{% block content %}
+{% comment %}The digital business card: one screen, made to be handed over. The QR is
+   rendered server-side by segno so it is real markup — it prints, it survives
+   a screenshot, and it needs no JavaScript to exist.{% endcomment %}
+<div class="shell vcard-wrap">
+  <div class="vcard">
+    <div class="vcard-face">
+      {% if profile.avatar %}
+        <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="92" height="92">
+      {% else %}
+        <span>{{ profile.full_name_en|default:"MM"|initials }}</span>
+      {% endif %}
+    </div>
+
+    <div>
+      <h1>{{ profile|tr:"full_name" }}</h1>
+      <p class="vcard-role">{{ profile|tr:"headline" }}</p>
+      {% if profile|tr:"location" %}<p class="vcard-loc">{{ profile|tr:"location" }}</p>{% endif %}
+    </div>
+
+    <div class="vcard-qr">{{ qr_svg|safe }}</div>
+    <p class="vcard-scan">{% t "card.scan" %}</p>
+
+    <div class="vcard-actions">
+      <a class="btn btn-primary" href="{{ vcard_url }}" download>
+        <svg aria-hidden="true"><use href="#i-download"></use></svg>{% t "card.add_contact" %}
+      </a>
+      <button class="btn btn-ghost" type="button" data-share="{{ card_url }}" data-copied-label="{% t 'contact.copied' %}">
+        <svg aria-hidden="true"><use href="#i-share"></use></svg>{% t "card.share" %}
+      </button>
+    </div>
+
+    {% if profile.links %}
+      <div class="vcard-links">
+        {% for link in profile.links %}
+          <a href="{{ link.href }}" target="_blank" rel="noopener" aria-label="{{ link.key }}" title="{{ link.label }}">
+            <svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+
+  <a class="more" href="{% url 'home' %}">
+    {% t "card.open_site" %}
+    <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+  </a>
+</div>
+{% endblock %}

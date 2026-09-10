@@ -1,0 +1,14 @@
+{% load site_tags %}
+<li class="tl-item{% if item.is_current %} is-current{% endif %}">
+  <div class="tl-when">
+    <time datetime="{{ item.start|iso }}">{{ item.start|smart_date }}</time>
+    —
+    {% if item.end %}<time datetime="{{ item.end|iso }}">{{ item.end|smart_date }}</time>{% else %}{% t "about.present" %}{% endif %}
+  </div>
+  <h3 class="tl-role">{{ item|tr:"role" }}</h3>
+  <div class="tl-org">
+    {% if item.url %}<a href="{{ item.url }}" rel="noopener" target="_blank">{{ item|tr:"org" }}</a>{% else %}{{ item|tr:"org" }}{% endif %}
+    {% if item|tr:"location" %}<span style="color:var(--mute);font-weight:400"> · {{ item|tr:"location" }}</span>{% endif %}
+  </div>
+  {% if item|tr:"description" %}<div class="tl-desc">{{ item|md:"description" }}</div>{% endif %}
+</li>

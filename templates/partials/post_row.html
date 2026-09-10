@@ -1,0 +1,10 @@
+{% load site_tags %}
+<a class="post-row reveal" href="{{ post.get_absolute_url }}" data-tags="{% for tag in post.tags.all %}{{ tag.slug }} {% endfor %}">
+  <h3 class="post-title">{{ post|tr:"title" }}</h3>
+  <time class="post-when" datetime="{{ post.published_at|iso }}">{{ post.published_at|smart_date:"day-month-year" }}</time>
+  {% if post|tr:"excerpt" %}<p class="post-ex">{{ post|tr:"excerpt" }}</p>{% endif %}
+  <div class="post-foot">
+    <span class="post-when num">{{ post.reading_minutes|fa_num }} {% t "blog.read_time" %}</span>
+    {% for tag in post.tags.all %}<span class="tag is-lilac">{{ tag|tr:"name" }}</span>{% endfor %}
+  </div>
+</a>

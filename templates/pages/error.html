@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load site_tags %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="shell err">
+  <div class="err-code">{{ code }}</div>
+  <h1>{{ title }}</h1>
+  <p>{{ body }}</p>
+  <a class="btn btn-primary" href="{% url 'home' %}" style="margin-top:8px">{% t "err.home" %}</a>
+</div>
+{% endblock %}
