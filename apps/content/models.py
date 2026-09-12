@@ -90,6 +90,13 @@ class TimeStamped(models.Model):
     bio=lambda: models.TextField(blank=True, help_text="Long form, Markdown. Shown on /about/."),
     location=lambda: models.CharField(max_length=80, blank=True),
     now=lambda: models.CharField(max_length=200, blank=True, help_text="What you are working on right now."),
+    languages=lambda: models.CharField(
+        max_length=160,
+        blank=True,
+        default="",
+        help_text="Spoken languages and levels, e.g. 'Persian native · English C1 · German A1'. "
+        "A German CV is expected to state these; the résumé page shows it in the fact bar.",
+    ),
     availability=lambda: models.CharField(max_length=80, blank=True, help_text="e.g. open to work"),
 )
 class Profile(Translatable, TimeStamped):

@@ -22,11 +22,13 @@ Everything runs through the venv at `.venv/` (`.venv/Scripts/` on Windows).
 .venv/Scripts/python manage.py runserver 8021       # local dev
 .venv/Scripts/python manage.py migrate               # after any model change
 .venv/Scripts/python manage.py makemigrations content
-.venv/Scripts/python manage.py seed_demo             # placeholder content, idempotent
+.venv/Scripts/python manage.py seed_profile          # the REAL content, idempotent
+.venv/Scripts/python manage.py seed_profile --wipe   # replace projects/skills/roles
+.venv/Scripts/python manage.py seed_demo             # placeholder content — overwrites the real profile
 .venv/Scripts/python manage.py seed_demo --wipe      # start the content over
 .venv/Scripts/python manage.py createsuperuser       # to reach /admin/
 .venv/Scripts/python manage.py check
-docker compose up --build                            # the real thing, port 8000
+docker compose up --build                            # the real thing, port 8004
 ```
 
 There is **no test suite yet**. When one arrives it belongs in `tests/` with
@@ -49,6 +51,14 @@ persistent is inside it on purpose: the database, uploads and collected static
 are one mount, so hosting is one container and one disk.
 
 ## Content lives in the database, not in the code
+
+**`seed_profile` is the real content and `seed_demo` will overwrite it.** Both
+write `Profile.load()`, so running `seed_demo` on a live database replaces
+Mahdi's biography with placeholders. `seed_profile` is the reviewed record of
+every public claim — it is the file to edit when a claim changes, not the admin
+form, because the admin leaves no diff. Its docstring lists the claims that are
+retired and must not come back, and the reasons education and every private
+fact are absent.
 
 `apps/content/models.py` holds every word a visitor reads. Nothing else in the
 project contains copy — if you find yourself typing a sentence about Mahdi into
@@ -116,10 +126,45 @@ directions. A rule that needs a tint writes `rgba(var(--sage-rgb), .12)`, never
 a second hex. Re-theming the site is editing values in those blocks.
 
 The palette is **actpact's «شن و مریم‌گلی» run pastel**: sage (`--sage`) is the
-primary voice, clay (`--clay`) is the signature accent used sparingly, and a
-third lilac (`--lilac`) is reserved for *writing* — a tag on a post is lilac so
-it never reads as a project. Adding a fourth hue means adding a fourth meaning,
-which is the reason not to.
+primary voice, clay (`--clay`) is the person — availability, «این روزها»,
+contact — and a third lilac (`--lilac`) is reserved for *writing*, so a tag on
+a post never reads as a project. Adding a fourth hue means adding a fourth
+meaning, which is the reason not to.
+
+**Each hue is a five-step ramp, not one value**: `--x-tint`, `--x-soft`,
+`--x`, `--x-strong`, `--x-deep`, plus `--x-rgb` for tints. This is what stops
+the page reading flat — a card, its border, its icon and its label can be one
+colour at four intensities instead of one accent doing one job on one ground.
+**Only `--x-strong` and `--x-deep` may colour a letterform**; each clears
+4.5:1 on `--surface`, which the old flat `--sage` (4.38:1) and `--clay`
+(3.30:1) did not. In dark the ramp inverts — `--x-deep` is the *lightest*
+step — so a rule that asked for `-deep` because it was drawing text keeps
+getting the readable step without knowing about the theme.
+
+**`--accent-*` is an indirection, not a fourth colour.** An element carrying
+`data-accent="clay"` (or `"lilac"`) re-points the whole ramp for itself and
+everything inside it, so every eyebrow, pill, chip, tag and link in that
+subtree follows. Re-colouring a section is one attribute in the template and
+no new CSS — that is how the writing section is lilac end to end without a
+single rule naming lilac. Prefer `var(--accent-…)` over `var(--sage-…)` in any
+component that could ever appear in more than one context.
+
+**Where a hue *carries* something it means something; where it is only a
+field it is rhythm.** Tags, links, buttons and post rows are the first kind and
+keep the fixed meanings above. Project-card covers, skill-group bars and the
+contact-channel icons are the second: they cycle all three hues by
+`:nth-child` so a row of near-identical boxes reads as several boxes rather
+than one box repeated. Drop the `4n+3` line in either cycle to go back to a
+sage/clay pair.
+
+**A section can be a band.** `.sec.sec-band` paints the section edge to edge in
+its own accent's `--wash-*`. `.sec` is already full-bleed, so this is a plain
+background and needs no negative-margin trick. Bands are what give a long page
+a horizontal rhythm instead of one continuous sheet of sand; the hero adds a
+blurred three-hue aurora on top of that. The aurora bleeds past the viewport
+deliberately, which is why `html` carries `overflow-x: clip` — `overflow-x:
+hidden` on `<body>` alone did not stop the document growing to fit it, and the
+symptom was the whole page shifted sideways in RTL.
 
 **Logical properties only.** The site runs RTL in Persian and LTR in English
 and German from the same rules: `padding-inline-start`, never `padding-left`.

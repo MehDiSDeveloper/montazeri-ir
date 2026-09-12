@@ -47,7 +47,6 @@ def home(request):
         "pages/home.html",
         {
             "featured_projects": featured,
-            "project_total": _published_projects().count(),
             "skill_groups": _skill_groups(),
             "primary_skills": [s for g in _skill_groups() for s in g.skills.all() if s.is_primary][:10],
             "experiences": Experience.objects.filter(kind=Experience.Kind.WORK)[:3],

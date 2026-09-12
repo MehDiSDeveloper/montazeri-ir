@@ -47,18 +47,13 @@
           <span class="portrait-initials">{{ profile.full_name_en|default:"MM"|initials }}</span>
         {% endif %}
       </div>
-      {% if project_total %}
-        <span class="portrait-badge">
-          <span class="num">{{ project_total|fa_num }}</span> {% t "projects.count" %}
-        </span>
-      {% endif %}
     </div>
   </div>
 </section>
 
 {# ── this week ─────────────────────────────────────────────────────────── #}
 {% if profile|tr:"now" %}
-<section class="sec" style="padding-block-start:0">
+<section class="sec" style="padding-block-start:0" data-accent="clay">
   <div class="shell">
     <div class="now-strip reveal">
       <span class="label">{% t "home.now" %}</span>
@@ -94,7 +89,7 @@
 
 {# ── skills ────────────────────────────────────────────────────────────── #}
 {% if skill_groups %}
-<section class="sec">
+<section class="sec sec-band">
   <div class="shell">
     <div class="sec-head">
       <div>
@@ -143,7 +138,7 @@
 
 {# ── writing ───────────────────────────────────────────────────────────── #}
 {% if posts %}
-<section class="sec">
+<section class="sec sec-band" data-accent="lilac">
   <div class="shell">
     <div class="sec-head">
       <div>

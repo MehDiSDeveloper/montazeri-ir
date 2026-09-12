@@ -2,7 +2,8 @@ services:
   web:
     build: .
     ports:
-      - "8000:8000"
+      # 8000 belongs to actpact (DockerizedPy). This site answers on 8004.
+      - "8004:8000"
     env_file:
       - .env
     volumes:

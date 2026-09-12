@@ -25,7 +25,11 @@
   {% block og_image %}{% if profile.avatar %}<meta property="og:image" content="{{ site_url }}{{ profile.avatar.url }}">{% endif %}{% endblock %}
   <meta name="twitter:card" content="summary_large_image">
 
-  <meta name="theme-color" content="#f7f3eb">
+  {% comment %}Two of them, so the browser chrome matches the ground the reader is
+     actually on. The values are --bg from the two token blocks in site.css;
+     if those change, these change with them.{% endcomment %}
+  <meta name="theme-color" content="#fbf7f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1512" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
 
   {% comment %}Pre-paint, blocking, on purpose: deferring the stored theme to app.js
@@ -75,7 +79,7 @@
 
         <nav class="nav" aria-label="{% t 'nav.menu' %}">
           <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
-          <a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>
+          {% if has_writing %}<a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>{% endif %}
           <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
           <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
           <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
@@ -117,7 +121,7 @@
       <nav class="mnav" data-mnav hidden aria-label="{% t 'nav.menu' %}">
         <a href="{% url 'home' %}" class="{% active 'home' %}">{% t "nav.home" %}</a>
         <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
-        <a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>
+        {% if has_writing %}<a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>{% endif %}
         <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
         <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
         <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
@@ -134,7 +138,7 @@
     <div class="shell ftr-in">
       <div class="ftr-links">
         <a href="{% url 'project_list' %}">{% t "nav.projects" %}</a>
-        <a href="{% url 'post_list' %}">{% t "nav.writing" %}</a>
+        {% if has_writing %}<a href="{% url 'post_list' %}">{% t "nav.writing" %}</a>{% endif %}
         <a href="{% url 'about' %}">{% t "nav.about" %}</a>
         <a href="{% url 'card' %}">{% t "nav.card" %}</a>
         <a href="{% url 'contact' %}">{% t "nav.contact" %}</a>

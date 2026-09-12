@@ -78,7 +78,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "projects.demo": {"fa": "نسخهٔ زنده", "en": "Live demo", "de": "Live-Demo"},
     "projects.next": {"fa": "پروژهٔ بعدی", "en": "Next project", "de": "Nächstes Projekt"},
     "projects.back": {"fa": "بازگشت به پروژه‌ها", "en": "Back to work", "de": "Zurück zu den Projekten"},
-    "projects.count": {"fa": "پروژه", "en": "projects", "de": "Projekte"},
 
     # ── writing ───────────────────────────────────────────────────────────
     "blog.title": {"fa": "نوشته‌ها", "en": "Writing", "de": "Blog"},
@@ -135,6 +134,7 @@ STRINGS: dict[str, dict[str, str]] = {
     # ── resume ────────────────────────────────────────────────────────────
     "resume.title": {"fa": "رزومه", "en": "Résumé", "de": "Lebenslauf"},
     "resume.print": {"fa": "چاپ / PDF", "en": "Print / PDF", "de": "Drucken / PDF"},
+    "resume.languages": {"fa": "زبان‌ها", "en": "Languages", "de": "Sprachen"},
 
     # ── errors and footer ─────────────────────────────────────────────────
     "err.404_title": {"fa": "این صفحه پیدا نشد", "en": "Page not found", "de": "Seite nicht gefunden"},

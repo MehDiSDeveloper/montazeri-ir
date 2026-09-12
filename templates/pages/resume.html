@@ -32,6 +32,10 @@
       {% if profile.phone %}<div><dt>{% t "contact.title" %}</dt><dd class="mono">{{ profile.phone }}</dd></div>{% endif %}
       {% if profile|tr:"location" %}<div><dt>Location</dt><dd>{{ profile|tr:"location" }}</dd></div>{% endif %}
       {% if profile.github %}<div><dt>GitHub</dt><dd class="mono">{{ profile.github }}</dd></div>{% endif %}
+      {% if profile.linkedin %}<div><dt>LinkedIn</dt><dd class="mono">{{ profile.linkedin }}</dd></div>{% endif %}
+      {% comment %}A German CV is read expecting a language line; leaving it to the
+         About page means the reviewer has to go looking for it.{% endcomment %}
+      {% if profile|tr:"languages" %}<div><dt>{% t "resume.languages" %}</dt><dd>{{ profile|tr:"languages" }}</dd></div>{% endif %}
     </dl>
   </div>
 </section>
@@ -55,7 +59,7 @@
 {% endif %}
 
 {% if skill_groups %}
-<section class="sec">
+<section class="sec sec-band">
   <div class="shell">
     <div class="sec-head"><div><span class="eyebrow">Toolbox</span><h2 class="sec-title">{% t "home.skills" %}</h2></div></div>
     <div class="skill-groups">
