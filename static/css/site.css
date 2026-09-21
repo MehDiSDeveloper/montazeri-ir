@@ -1677,6 +1677,22 @@ body[dir="ltr"] .bubble-body { line-height: 1.7; }
 .track-reply { margin-top: 22px; }
 .track-reply textarea { min-height: 120px; }
 #thread-end { scroll-margin-top: 120px; }
+/* The request in the visitor's own messenger: a quiet card under the reply
+   box, because it is an extra, not the way to answer. */
+.bale-card {
+  display: flex; align-items: flex-start; gap: 14px; margin-top: 28px;
+  padding: 16px 18px; border-radius: var(--r);
+  background: var(--accent-tint); border: 1px dashed rgba(var(--accent-rgb), .9);
+}
+.bale-ico {
+  flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+}
+.bale-ico svg { width: 18px; height: 18px; }
+.bale-body { display: grid; gap: 10px; justify-items: start; min-width: 0; }
+.bale-title { font-size: var(--step-0); color: var(--ink); margin: 0; }
+.bale-body p { margin: 0; font-size: var(--step--1); color: var(--ink-2); line-height: 1.9; }
+#bale { scroll-margin-top: 120px; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    17 · THE BUSINESS CARD

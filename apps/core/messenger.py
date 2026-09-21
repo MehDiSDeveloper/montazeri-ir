@@ -46,6 +46,12 @@ def owns_chat(chat_id) -> bool:
     return bool(settings.BOT_CHAT_ID) and str(chat_id) == str(settings.BOT_CHAT_ID)
 
 
+def link_to_bot(payload: str = "") -> str:
+    """The deep link that opens the bot and hands it `payload` with /start."""
+    url = f"{settings.BOT_LINK_BASE}/{settings.BOT_USERNAME}"
+    return f"{url}?start={payload}" if payload else url
+
+
 def call(method: str, payload: dict | None = None, timeout: float | None = None) -> dict | list:
     """Call one bot method and return its `result`. Raises BotError."""
     if not settings.BOT_TOKEN:
@@ -88,13 +94,20 @@ def _chunks(text: str) -> list[str]:
     return out
 
 
-def send(text: str, keyboard: Keyboard | None = None, chat_id: str | None = None) -> dict | None:
+def send(
+    text: str,
+    keyboard: Keyboard | None = None,
+    chat_id: str | None = None,
+    markup: dict | None = None,
+) -> dict | None:
     """Send `text`, split if it is long. The buttons go on the last piece, so
     they sit under the whole notice. Returns that last message, or None when
     there is nobody to send to.
 
     An explicit `chat_id` needs only a token, not a configured owner: that is
     what lets the bot answer /id before DJANGO_BOT_CHAT_ID has been filled in.
+    `markup` is any other reply_markup — a keyboard under the text box, such
+    as the one that shares a phone number, or the order to remove it.
     """
     destination = chat_id or settings.BOT_CHAT_ID
     if not (settings.BOT_TOKEN and destination):
@@ -106,8 +119,11 @@ def send(text: str, keyboard: Keyboard | None = None, chat_id: str | None = None
         payload = {"chat_id": destination, "text": piece}
         # No parse_mode: whatever a visitor typed can then never break the
         # formatting, or worse, turn into markup.
-        if keyboard and index == len(pieces) - 1:
-            payload["reply_markup"] = {"inline_keyboard": keyboard}
+        if index == len(pieces) - 1:
+            if keyboard:
+                payload["reply_markup"] = {"inline_keyboard": keyboard}
+            elif markup:
+                payload["reply_markup"] = markup
         sent = call("sendMessage", payload)
     return sent
 

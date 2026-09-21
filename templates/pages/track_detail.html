@@ -91,6 +91,41 @@
         </button>
       </div>
     </form>
+
+    {% comment %}Updates in the visitor's own Bale. Only when the bot's visitor half
+       is on; without a phone number on the request there is nothing to verify
+       the chat against, so the page says so instead of offering a button that
+       could only fail. Both buttons are forms: a GET would let a link preview
+       mint a token or cut the connection.{% endcomment %}
+    {% if bale_enabled %}
+      <div class="bale-card reveal" id="bale">
+        <span class="bale-ico" aria-hidden="true"><svg><use href="#i-send"></use></svg></span>
+        <div class="bale-body">
+          <h2 class="bale-title">{% t "bale.title" %}</h2>
+          {% if bale_off %}
+            <p role="status">{% t "bale.disconnected" %}</p>
+          {% endif %}
+          {% if bale_linked %}
+            <p>{% t "bale.connected" %}</p>
+            <form method="post" action="{% url 'track_bale_stop' message.tracking_code %}">
+              {% csrf_token %}
+              <button class="btn btn-quiet" type="submit">{% t "bale.disconnect" %}</button>
+            </form>
+          {% elif message.phone %}
+            <p>{% t "bale.connect_hint" %}</p>
+            <form method="post" action="{% url 'track_bale' message.tracking_code %}">
+              {% csrf_token %}
+              <button class="btn btn-soft" type="submit">
+                <span class="btn-label">{% t "bale.connect" %}</span>
+                <svg class="fwd" aria-hidden="true"><use href="#i-send"></use></svg>
+              </button>
+            </form>
+          {% else %}
+            <p>{% t "bale.no_phone" %}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

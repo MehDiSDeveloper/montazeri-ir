@@ -29,7 +29,7 @@ from django.db import connections, transaction
 from django.utils import timezone
 
 from apps.content.models import BotState, Message
-from apps.core import messenger
+from apps.core import messenger, visitor
 from apps.core.jalali import to_jalali
 
 log = logging.getLogger("bot")
@@ -344,23 +344,37 @@ def _on_button(state: BotState, query: dict) -> None:
 
 def _on_text(state: BotState, incoming: dict) -> None:
     chat_id = (incoming.get("chat") or {}).get("id")
+    owner = messenger.owns_chat(chat_id)
+    # Anyone who is not the owner is, at most, a visitor — and only once the
+    # visitor half is switched on. See apps/core/visitor.py.
+    as_visitor = not owner and visitor.is_enabled()
+
+    if incoming.get("contact"):
+        if as_visitor:
+            visitor.contact(incoming)
+        return
+
     text = (incoming.get("text") or "").strip()
     if not text:
         return
 
     command = text.split()[0].split("@")[0].lower()
 
-    # /start and /id answer anyone: before DJANGO_BOT_CHAT_ID is set nobody is
-    # the owner yet, and this is how that id is found. They tell the asker
-    # their own chat id and nothing else.
-    if command in {"/start", "/id"}:
+    # /id — and /start, until visitors are being let in — answer anyone:
+    # before DJANGO_BOT_CHAT_ID is set nobody is the owner yet, and this is
+    # how that id is found. They tell the asker their own chat id and nothing
+    # else.
+    if command == "/id" or (command == "/start" and not as_visitor):
         messenger.send(
             f"شناسهٔ این گفت‌وگو: {chat_id}\n\nآن را در DJANGO_BOT_CHAT_ID بگذارید.",
             chat_id=str(chat_id),
         )
         return
 
-    if not messenger.owns_chat(chat_id):
+    if as_visitor:
+        visitor.on_text(incoming, text)
+        return
+    if not owner:
         return  # a stranger found the bot: say nothing
 
     if command == "/new":

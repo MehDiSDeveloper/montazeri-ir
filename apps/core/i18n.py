@@ -247,6 +247,67 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "The reply is empty.",
         "de": "Die Antwort ist leer.",
     },
+    # ── the request in the visitor's own Bale ─────────────────────────────
+    "bale.title": {"fa": "پاسخ‌ها در بله", "en": "Replies in Bale", "de": "Antworten in Bale"},
+    "bale.connect": {"fa": "دریافت پاسخ‌ها در بله", "en": "Get replies in Bale", "de": "Antworten in Bale erhalten"},
+    "bale.connect_hint": {
+        "fa": "ربات بله شمارهٔ شما را می‌پرسد تا مطمئن شود خودتان هستید؛ باید همان شماره‌ای باشد که در فرم نوشتید. بعد از آن پاسخ‌ها و تغییر وضعیت همین‌جا و در بله می‌رسد و از همان‌جا هم می‌توانید جواب بدهید.",
+        "en": "The Bale bot asks for your phone number to make sure it is you — it has to be the number you gave in the form. After that, replies and status changes reach you in Bale too, and you can answer from there.",
+        "de": "Der Bale-Bot fragt nach Ihrer Telefonnummer, um sicherzugehen, dass Sie es sind – es muss die Nummer aus dem Formular sein. Danach erreichen Sie Antworten und Statusänderungen auch in Bale, und Sie können dort antworten.",
+    },
+    "bale.no_phone": {
+        "fa": "برای دریافت پاسخ‌ها در بله، درخواست باید شمارهٔ تماس داشته باشد و این یکی ندارد.",
+        "en": "Replies in Bale need a phone number on the request, and this one has none.",
+        "de": "Für Antworten in Bale braucht die Anfrage eine Telefonnummer, und diese hat keine.",
+    },
+    "bale.connected": {
+        "fa": "این درخواست به بلهٔ شما وصل است؛ پاسخ‌ها و تغییر وضعیت آنجا هم می‌رسد.",
+        "en": "This request is connected to your Bale: replies and status changes arrive there too.",
+        "de": "Diese Anfrage ist mit Ihrem Bale verbunden: Antworten und Statusänderungen kommen auch dort an.",
+    },
+    "bale.disconnect": {"fa": "قطع اتصال از بله", "en": "Disconnect Bale", "de": "Bale trennen"},
+    "bale.disconnected": {
+        "fa": "اتصال بله قطع شد. پاسخ‌ها فقط در همین صفحه دیده می‌شوند.",
+        "en": "Bale is disconnected. Replies now appear on this page only.",
+        "de": "Bale ist getrennt. Antworten erscheinen jetzt nur noch auf dieser Seite.",
+    },
+    # What the bot says. «{code}» is the tracking code.
+    "bale.ask_contact": {
+        "fa": "برای وصل کردن درخواست {code}، با دکمهٔ زیر شمارهٔ خودتان را بفرستید. باید همان شماره‌ای باشد که در فرم نوشتید.",
+        "en": "To connect request {code}, share your number with the button below. It has to be the number you gave in the form.",
+        "de": "Um Anfrage {code} zu verbinden, teilen Sie Ihre Nummer über die Schaltfläche unten. Es muss die Nummer aus dem Formular sein.",
+    },
+    "bale.share_phone": {"fa": "📱 ارسال شمارهٔ من", "en": "📱 Share my number", "de": "📱 Meine Nummer teilen"},
+    "bale.bad_link": {
+        "fa": "این لینک منقضی شده یا قبلاً استفاده شده. صفحهٔ پیگیری را باز کنید و دوباره «دریافت پاسخ‌ها در بله» را بزنید.",
+        "en": "This link has expired or was already used. Open your tracking page and press «Get replies in Bale» again.",
+        "de": "Dieser Link ist abgelaufen oder wurde schon benutzt. Öffnen Sie Ihre Seite zur Anfrage und tippen Sie erneut auf «Antworten in Bale erhalten».",
+    },
+    "bale.own_contact": {
+        "fa": "لطفاً شمارهٔ خودتان را با همان دکمهٔ زیر بفرستید، نه مخاطب دیگری را.",
+        "en": "Please share your own number with the button below, not another contact.",
+        "de": "Bitte teilen Sie Ihre eigene Nummer über die Schaltfläche unten, keinen anderen Kontakt.",
+    },
+    "bale.mismatch": {
+        "fa": "این شماره با شمارهٔ ثبت‌شده در درخواست یکی نیست، پس اتصال انجام نشد. اگر شماره را اشتباه نوشته بودید، در صفحهٔ پیگیری پیام بگذارید.",
+        "en": "This number is not the one on the request, so nothing was connected. If the number in the form was wrong, say so on your tracking page.",
+        "de": "Diese Nummer ist nicht die der Anfrage, daher wurde nichts verbunden. Falls die Nummer im Formular falsch war, schreiben Sie es auf Ihrer Anfrageseite.",
+    },
+    "bale.linked": {
+        "fa": "✅ وصل شد. از این به بعد پاسخ‌ها و تغییر وضعیت درخواست {code} همین‌جا می‌رسد.",
+        "en": "✅ Connected. Replies and status changes for request {code} will arrive here.",
+        "de": "✅ Verbunden. Antworten und Statusänderungen zu Anfrage {code} kommen ab jetzt hier an.",
+    },
+    "bale.stopped": {
+        "fa": "اتصال قطع شد؛ دیگر پیامی دربارهٔ {codes} اینجا نمی‌آید.",
+        "en": "Disconnected: nothing more about {codes} will be sent here.",
+        "de": "Getrennt: Zu {codes} kommt hier nichts mehr an.",
+    },
+    "bale.welcome": {
+        "fa": "سلام! برای دریافت پاسخ یک درخواست در بله، صفحهٔ پیگیری آن را در سایت باز کنید و «دریافت پاسخ‌ها در بله» را بزنید.",
+        "en": "Hello! To get replies to a request here, open its tracking page on the site and press «Get replies in Bale».",
+        "de": "Hallo! Um Antworten zu einer Anfrage hier zu erhalten, öffnen Sie ihre Seite auf der Website und tippen Sie auf «Antworten in Bale erhalten».",
+    },
     "status.new": {"fa": "دریافت شد", "en": "Received", "de": "Eingegangen"},
     "status.read": {"fa": "در حال بررسی", "en": "In review", "de": "In Prüfung"},
     "status.answered": {"fa": "پاسخ داده شد", "en": "Answered", "de": "Beantwortet"},

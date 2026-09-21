@@ -38,7 +38,7 @@ else:
     # Inside Docker, compose's `env_file` has already put .env in the real
     # environment, so skipping the file is not enough: the bot is switched
     # off here too. Tests that need it turn it on with override_settings.
-    for _key in ("DJANGO_BOT_TOKEN", "DJANGO_BOT_CHAT_ID", "DJANGO_BOT_WEBHOOK_SECRET"):
+    for _key in ("DJANGO_BOT_TOKEN", "DJANGO_BOT_CHAT_ID", "DJANGO_BOT_WEBHOOK_SECRET", "DJANGO_BOT_USERNAME"):
         os.environ.pop(_key, None)
 
 # The one directory that is a volume in production: database, uploads, static.
@@ -264,3 +264,14 @@ BOT_WEBHOOK_SECRET = os.environ.get("DJANGO_BOT_WEBHOOK_SECRET", "").strip()
 BOT_TIMEOUT_SECONDS = 10
 # How long after pressing «یادداشت» a plain message still counts as that note.
 BOT_NOTE_WINDOW_SECONDS = 15 * 60
+
+# ── The same bot, for the visitor ──────────────────────────────────────────
+# A visitor can have their request's updates sent to their own chat, and
+# answer or cancel from there. Needs the bot's username for the deep link
+# (ble.ir/<username>?start=<token>); empty keeps that half of the bot off and
+# the tracking page shows no button.
+BOT_USERNAME = os.environ.get("DJANGO_BOT_USERNAME", "").strip().lstrip("@")
+# Where a bot's username becomes a link: ble.ir for Bale, t.me for Telegram.
+BOT_LINK_BASE = os.environ.get("DJANGO_BOT_LINK_BASE", "https://ble.ir").rstrip("/")
+# How long a «get replies in Bale» link stays usable.
+BOT_LINK_TOKEN_SECONDS = 15 * 60

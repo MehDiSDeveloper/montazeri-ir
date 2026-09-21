@@ -498,6 +498,24 @@ def normalise_tracking_code(value: str) -> str:
     return f"{raw[:4]}-{raw[4:]}" if len(raw) == TRACKING_LENGTH else ""
 
 
+_PHONE_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def normalise_phone(value: str) -> str:
+    """One number, however it was written: «۰۹۱۲ ۳۴۵ ۶۷۸۹», «+98 912…» and
+    «00989123456789» all come out as «09123456789». A number from outside
+    Iran keeps its country code and loses only the punctuation. Empty when
+    there are too few digits to be a phone at all."""
+    digits = "".join(ch for ch in (value or "").translate(_PHONE_DIGITS) if ch.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if digits.startswith("98") and len(digits) == 12:
+        digits = "0" + digits[2:]
+    elif digits.startswith("9") and len(digits) == 10:
+        digits = "0" + digits
+    return digits if len(digits) >= 7 else ""
+
+
 class Message(models.Model):
     """What the contact form saves — and, when it is a project enquiry, a lead.
 
@@ -643,6 +661,27 @@ class Message(models.Model):
         self.set_status(self.Status.ANSWERED if from_owner else self.Status.NEW)
         return reply
 
+    @property
+    def can_be_cancelled(self) -> bool:
+        return self.status not in (self.Status.REJECTED, self.Status.ARCHIVED)
+
+    def cancel_by_visitor(self) -> "Reply":
+        """The visitor withdrew the request. It is put away like an archived
+        one, and the withdrawal is a turn in the conversation rather than a
+        flag, so it stays on the record after the visitor writes again —
+        which, like any reply of theirs, makes the request «new»."""
+        reply = self.replies.create(event=Reply.Event.CANCELLED, from_owner=False)
+        self.set_status(self.Status.ARCHIVED)
+        return reply
+
+    @property
+    def cancelled_by_visitor(self) -> bool:
+        """Put away because the visitor withdrew it, and nothing said since."""
+        if self.status != self.Status.ARCHIVED:
+            return False
+        last = self.replies.order_by("-created_at", "-pk").first()
+        return last is not None and last.event == Reply.Event.CANCELLED
+
     def add_note(self, text: str) -> str:
         """Append one dated line to the private notes. Returns the line."""
         from apps.core.jalali import to_jalali  # local: keeps content free of core at import time
@@ -663,9 +702,16 @@ class Reply(models.Model):
     both people can point back to later.
     """
 
+    class Event(models.TextChoices):
+        """A turn that is something the visitor did rather than something
+        they said. Empty for an ordinary reply."""
+
+        CANCELLED = "cancelled", "لغو توسط درخواست‌کننده — cancelled by the visitor"
+
     message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="replies")
     from_owner = models.BooleanField(default=False)
-    body = models.TextField()
+    body = models.TextField(blank=True)
+    event = models.CharField(max_length=16, choices=Event.choices, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -743,3 +789,87 @@ class BotState(models.Model):
             self.awaiting_since = None
             self.awaiting_reply = False
             self.save(update_fields=["awaiting_note_for", "awaiting_since", "awaiting_reply"])
+
+
+# ── The visitor's side of the bot ──────────────────────────────────────────
+def new_link_token() -> str:
+    # URL-safe and well inside the 64 characters a /start payload may carry.
+    return secrets.token_urlsafe(18)
+
+
+class ChatLinkToken(models.Model):
+    """The one-time key in a «get replies in Bale» deep link.
+
+    It exists so the tracking code itself never travels through the messenger:
+    the page mints one of these, the link carries it, and /start spends it.
+    It is short-lived, it is claimed by the first chat that presents it — no
+    other chat can use it after that — and it is spent by the first contact
+    that chat shares, whether or not the number matched.
+    """
+
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="link_tokens")
+    token = models.CharField(max_length=64, unique=True, default=new_link_token, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    # The chat that opened the link, and so the only one whose contact counts.
+    chat_id = models.CharField(max_length=64, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"link token for #{self.message_id}"
+
+    @classmethod
+    def issue(cls, message: Message) -> "ChatLinkToken":
+        """A token for `message` — the one already waiting, if there is one,
+        so reloading the page and pressing again does not pile rows up."""
+        now = timezone.now()
+        cls.objects.filter(expires_at__lt=now).delete()
+        waiting = cls.objects.filter(message=message, chat_id="", used_at=None, expires_at__gt=now).first()
+        if waiting is not None:
+            return waiting
+        return cls.objects.create(message=message, expires_at=now + timedelta(seconds=settings.BOT_LINK_TOKEN_SECONDS))
+
+    @property
+    def is_live(self) -> bool:
+        return self.used_at is None and self.expires_at > timezone.now()
+
+
+class ChatLink(models.Model):
+    """A request whose updates go to the visitor's own chat.
+
+    Made only once the number the visitor shared from inside the messenger —
+    their own, not somebody else's contact card — matched the number on the
+    request. That chat is then allowed exactly three things for this request
+    and nothing else: to be told, to reply, and to cancel. Every button checks
+    this row, so knowing a request's id is worth nothing.
+
+    `told_status` and `told_reply_id` are what the visitor was last told, so
+    the same change is never sent twice and a private note — which changes
+    neither — is never sent at all.
+    """
+
+    message = models.OneToOneField(Message, on_delete=models.CASCADE, related_name="chat_link")
+    chat_id = models.CharField(max_length=64, db_index=True)
+    phone = models.CharField(max_length=32, help_text="As shared from the messenger, normalised.")
+    connected_at = models.DateTimeField(auto_now_add=True)
+
+    told_status = models.CharField(max_length=16, blank=True)
+    told_reply_id = models.BigIntegerField(default=0)
+    # «پاسخ» is a press first and a text second, like the owner's.
+    awaiting_reply_since = models.DateTimeField(null=True, blank=True)
+    # The last reply or cancellation from the messenger: the same one-a-minute
+    # throttle the site's form has.
+    last_action_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "chat link"
+
+    def __str__(self) -> str:
+        return f"#{self.message_id} → chat {self.chat_id}"
+
+    def mark_told(self) -> None:
+        """Record the request's current state as already known to the visitor
+        — for the changes they made themselves."""
+        last = self.message.replies.filter(from_owner=True).order_by("-pk").values_list("pk", flat=True).first()
+        self.told_status, self.told_reply_id = self.message.status, last or 0
+        ChatLink.objects.filter(pk=self.pk).update(told_status=self.told_status, told_reply_id=self.told_reply_id)

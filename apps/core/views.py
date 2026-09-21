@@ -25,6 +25,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.content.models import (
+    ChatLinkToken,
     Experience,
     Message,
     Post,
@@ -35,7 +36,7 @@ from apps.content.models import (
     normalise_tracking_code,
 )
 
-from . import bot
+from . import bot, messenger, visitor
 from .forms import ContactForm, ReplyForm, TrackForm
 from .geo import client_ip
 from .i18n import t
@@ -222,8 +223,31 @@ def track_detail(request, code: str):
             "form": form,
             "sent": request.GET.get("sent") == "1",
             "throttled": throttled,
+            "bale_enabled": visitor.is_enabled(),
+            "bale_linked": hasattr(message, "chat_link"),
+            "bale_off": request.GET.get("bale") == "off",
         },
     )
+
+
+@require_POST
+def track_bale(request, code: str):
+    """«Get replies in Bale»: mint a one-time token and hand the visitor to
+    the bot with it. A POST, so a link preview or a crawler never mints one,
+    and a token rather than the tracking code, so the code never travels
+    through the messenger. apps/core/visitor.py does the rest."""
+    message = get_object_or_404(Message, tracking_code=normalise_tracking_code(code) or None)
+    if not (visitor.is_enabled() and message.phone):
+        return redirect("track_detail", code=message.tracking_code)
+    return redirect(messenger.link_to_bot(ChatLinkToken.issue(message).token))
+
+
+@require_POST
+def track_bale_stop(request, code: str):
+    """The page's own way out: this request stops reaching the chat."""
+    message = get_object_or_404(Message, tracking_code=normalise_tracking_code(code) or None)
+    visitor.disconnect(message)
+    return redirect(f"{reverse('track_detail', args=[message.tracking_code])}?bale=off#bale")
 
 
 def card(request):
