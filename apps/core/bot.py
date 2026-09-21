@@ -45,6 +45,7 @@ EMPTY = "—"
 STATUS_LABEL = {
     Message.Status.NEW: "🆕 جدید",
     Message.Status.READ: "👁 خوانده‌شده",
+    Message.Status.ANSWERED: "💬 پاسخ داده شده",
     Message.Status.REJECTED: "❌ رد شده",
     Message.Status.ARCHIVED: "🗄 بایگانی",
 }
@@ -53,6 +54,7 @@ LANGUAGE_LABEL = {"fa": "فارسی", "en": "English", "de": "Deutsch"}
 BUTTON_READ = "👁 خوانده شد"
 BUTTON_UNREAD = "↩️ برگرداندن به جدید"
 BUTTON_NOTE = "📝 یادداشت"
+BUTTON_REPLY = "💬 پاسخ به درخواست‌کننده"
 BUTTON_REJECT = "❌ رد درخواست"
 BUTTON_UNREJECT = "↩️ لغو رد"
 BUTTON_ARCHIVE = "🗄 بایگانی"
@@ -72,22 +74,67 @@ def _when(moment) -> str:
     return f"{jy}/{jm:02d}/{jd:02d} ساعت {local:%H:%M}"
 
 
-def notice_text(message: Message) -> str:
+def _label(message: Message, field: str) -> str:
+    """The Persian half of a choice label: «پروژه — project» → «پروژه»."""
+    return getattr(message, f"get_{field}_display")().split(" — ")[0]
+
+
+def _deadline(message: Message) -> str:
+    days = message.days_left()
+    if days is None:
+        return _label(message, "timeline")
+    if days < 0:
+        left = f"{-days} روز گذشته ⚠️"
+    elif days == 0:
+        left = "امروز ⏰"
+    else:
+        left = f"{days} روز مانده"
+    return f"{_label(message, 'timeline')} — {left}"
+
+
+# Enough of the conversation to answer from the phone, and no more: both
+# services cap a message at 4096 characters.
+THREAD_TURNS = 3
+THREAD_CLIP = 600
+
+
+def _thread(message: Message) -> list[str]:
+    replies = list(message.replies.all())
+    if not replies:
+        return []
+    lines = ["", f"💬 گفت‌وگو ({len(replies)} پاسخ):"]
+    if len(replies) > THREAD_TURNS:
+        lines.append("…")
+    for reply in replies[-THREAD_TURNS:]:
+        who = "شما" if reply.from_owner else (message.name or "درخواست‌کننده")
+        body = reply.body.strip()
+        if len(body) > THREAD_CLIP:
+            body = body[:THREAD_CLIP].rstrip() + "…"
+        lines += [f"— {who} · {_when(reply.created_at)}:", body]
+    return lines
+
+
+def notice_text(message: Message, headline: str = "📩 درخواست تازه") -> str:
     """The whole request in one message. Nothing is hidden behind a link: the
     point is to be able to decide without opening anything."""
     lines = [
-        f"📩 درخواست تازه #{message.pk} — {_host()}",
+        f"{headline} #{message.pk} — {_host()}",
         f"وضعیت: {STATUS_LABEL.get(message.status, message.status)}",
         "",
         f"نام: {message.name or EMPTY}",
+        f"شرکت: {message.company or EMPTY}",
         f"ایمیل: {message.email or EMPTY}",
         f"تلفن: {message.phone or EMPTY}",
+        f"نوع: {_label(message, 'kind')}",
+        f"مهلت: {_deadline(message)}",
         f"موضوع: {message.subject or EMPTY}",
         f"زبان: {LANGUAGE_LABEL.get(message.language, message.language or EMPTY)}",
         f"زمان: {_when(message.created_at)}",
+        f"کد پیگیری: {message.tracking_code}",
         "",
         "پیام:",
         message.body.strip(),
+        *_thread(message),
     ]
     if message.notes.strip():
         lines += ["", "📝 یادداشت‌ها:", message.notes.strip()]
@@ -118,6 +165,7 @@ def keyboard(message: Message) -> messenger.Keyboard:
         archive = {"text": BUTTON_ARCHIVE, "callback_data": f"req:archive:{pk}"}
 
     return [
+        [{"text": BUTTON_REPLY, "callback_data": f"req:reply:{pk}"}],
         [first, {"text": BUTTON_NOTE, "callback_data": f"req:note:{pk}"}],
         [reject, archive],
         # A URL button opens the panel in one tap. The address is in the text
@@ -158,11 +206,20 @@ def notify_new(message: Message) -> None:
     transaction.on_commit(lambda: in_background(_send_notice, pk))
 
 
-def _send_notice(pk: int) -> None:
+def notify_reply(message: Message) -> None:
+    """The visitor wrote back. A fresh notice rather than a repaint of the old
+    one: a repaint makes no sound, and somebody is waiting again."""
+    if not messenger.is_configured():
+        return
+    pk = message.pk
+    transaction.on_commit(lambda: in_background(_send_notice, pk, "💬 پاسخ تازه از درخواست‌کننده"))
+
+
+def _send_notice(pk: int, headline: str = "📩 درخواست تازه") -> None:
     message = Message.objects.filter(pk=pk).first()
     if message is None:
         return
-    sent = messenger.send(notice_text(message), keyboard(message))
+    sent = messenger.send(notice_text(message, headline), keyboard(message))
     if not sent:
         return
     Message.objects.filter(pk=pk).update(
@@ -210,6 +267,8 @@ ACTIONS = {
 HELP = (
     "این ربات درخواست‌های ثبت‌شده در سایت را می‌آورد.\n\n"
     "دکمه‌های زیر هر درخواست وضعیتش را عوض می‌کنند: خوانده‌شده، رد، بایگانی.\n"
+    "برای پاسخ به درخواست‌کننده، دکمهٔ «پاسخ» را بزنید و بعد متن را بفرستید؛ "
+    "پاسخ در صفحهٔ پیگیری او دیده می‌شود و درخواست «پاسخ داده شده» می‌شود.\n"
     "برای یادداشت، دکمهٔ «یادداشت» را بزنید و بعد متن را بفرستید — یا هر وقت "
     "خواستید پیامی به شکل «#12 متن یادداشت» بفرستید تا روی همان درخواست بنشیند.\n\n"
     "/new — درخواست‌های خوانده‌نشده\n"
@@ -264,6 +323,14 @@ def _on_button(state: BotState, query: dict) -> None:
         messenger.answer(callback_id, "متن یادداشت را بفرستید.")
         messenger.send(f"📝 یادداشت برای درخواست #{pk} ({message.name}) — متن را بفرستید.")
         return
+    if action == "reply":
+        state.await_note_for(message, reply=True)
+        messenger.answer(callback_id, "متن پاسخ را بفرستید.")
+        messenger.send(
+            f"💬 پاسخ به {message.name} (درخواست #{pk}) — متن را بفرستید.\n"
+            "این متن در صفحهٔ پیگیری درخواست‌کننده نمایش داده می‌شود."
+        )
+        return
 
     if action not in ACTIONS:
         messenger.answer(callback_id, "این دکمه معتبر نیست.")
@@ -307,8 +374,10 @@ def _on_text(state: BotState, incoming: dict) -> None:
 
 
 def _file_note(state: BotState, incoming: dict, text: str) -> None:
-    """A plain message is a note. Which request it belongs to, in the order of
-    how explicit the owner was being."""
+    """A plain message is a note — or, straight after «پاسخ», an answer for the
+    visitor. Which request it belongs to, in the order of how explicit the
+    owner was being. A named request (#12, or a swiped notice) is always a
+    note: an answer goes out to somebody, so it only ever follows the button."""
     named, note = None, text
 
     prefixed = PREFIXED_NOTE.match(text)
@@ -329,6 +398,12 @@ def _file_note(state: BotState, incoming: dict, text: str) -> None:
             return
     else:
         target = state.pending_note_target()
+        if target is not None and state.awaiting_reply:
+            target.add_reply(note, from_owner=True)
+            state.clear_note_target()
+            refresh(target)
+            messenger.send(f"✅ پاسخ برای {target.name} (درخواست #{target.pk}) ثبت شد و در صفحهٔ پیگیری‌اش دیده می‌شود.")
+            return
 
     if target is None:
         messenger.send(NOTE_HINT)

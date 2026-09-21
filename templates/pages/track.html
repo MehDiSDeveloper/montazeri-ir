@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{% t "track.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{% t "track.lede" %}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<section class="page-head" data-accent="peach">
+  <div class="narrow track-narrow">
+    <span class="eyebrow">Tracking</span>
+    <h1 class="page-title">{% t "track.title" %}</h1>
+    <p class="sec-lede">{% t "track.lede" %}</p>
+  </div>
+</section>
+
+<section class="sec sec-flush" data-accent="peach">
+  <div class="narrow track-narrow">
+    {% if locked %}
+      <div class="note" role="alert" style="margin-bottom:16px">
+        <span class="note-ico" aria-hidden="true"><svg><use href="#i-info"></use></svg></span>
+        <span>{% t "track.locked" %}</span>
+      </div>
+    {% endif %}
+
+    <form class="form reveal" method="post" action="{% url 'track' %}" novalidate data-form>
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_code">{% t "track.code" %}</label>
+        <div class="control">
+          <svg aria-hidden="true"><use href="#i-search"></use></svg>
+          {% comment %}Latin and left-to-right in every language, capitalised as it is
+             typed; the server accepts it lower-case or without the dash anyway.{% endcomment %}
+          <input class="track-input" type="text" name="code" id="id_code" required maxlength="32"
+                 dir="ltr" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 placeholder="XXXX-XXXX" value="{{ form.code.value|default:'' }}"
+                 {% if form.code.errors %}aria-invalid="true" aria-describedby="code-err"{% endif %} autofocus>
+        </div>
+        {% for e in form.code.errors %}<span class="field-err" id="code-err">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-foot">
+        <span class="field-hint">{% t "track.no_code" %} <a href="{% url 'contact' %}">{% t "nav.contact" %}</a></span>
+        <button class="btn btn-primary" type="submit" data-submit {% if locked %}disabled{% endif %}>
+          <span class="btn-label">{% t "track.open" %}</span>
+          <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

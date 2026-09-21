@@ -47,6 +47,12 @@
         <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
       </a>
 
+      <a class="card-link reveal" href="{% url 'track' %}" data-accent="sky" data-spot style="margin-top:10px">
+        <span class="card-link-qr" aria-hidden="true"><svg><use href="#i-search"></use></svg></span>
+        <span><b>{% t "track.title" %}</b><small>{% t "contact.have_code" %}</small></span>
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+      </a>
+
       {% if has_offer %}
         <a class="card-link reveal" href="{% url 'services' %}" data-accent="peach" data-spot style="margin-top:10px">
           <span class="card-link-qr" aria-hidden="true"><svg><use href="#i-briefcase"></use></svg></span>
@@ -64,6 +70,25 @@
           <span class="note-ico" aria-hidden="true"><svg><use href="#i-check"></use></svg></span>
           <span>{% t "contact.sent" %}</span>
         </div>
+        {% if tracking_code %}
+          {% comment %}The code is the visitor's key to the conversation, so it is shown
+             large, copyable and with the one button that uses it.{% endcomment %}
+          <div class="code-card" data-accent="mint" style="margin-bottom:16px">
+            <span class="code-card-label">{% t "contact.code_is" %}</span>
+            <span class="code-card-row">
+              <code class="track-code">{{ tracking_code }}</code>
+              <button class="mini-btn" type="button" data-copy="{{ tracking_code }}"
+                      data-copied-label="{% t 'contact.copied' %}" aria-label="{% t 'contact.copy' %}" data-tip="{% t 'contact.copy' %}">
+                <svg aria-hidden="true"><use href="#i-copy"></use></svg>
+              </button>
+            </span>
+            <p class="field-hint">{% t "contact.code_keep" %}</p>
+            <a class="btn btn-soft btn-sm" href="{% url 'track_detail' tracking_code %}">
+              <span>{% t "track.title" %}</span>
+              <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+            </a>
+          </div>
+        {% endif %}
       {% endif %}
       {% if throttled %}
         <div class="note" data-accent="peach" role="alert" style="margin-bottom:16px">
@@ -92,6 +117,17 @@
             {% for e in form.name.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
           </div>
           <div class="field">
+            <label for="id_company">{% t "contact.company" %} <small class="field-opt">{% t "contact.optional" %}</small></label>
+            <div class="control">
+              <svg aria-hidden="true"><use href="#i-briefcase"></use></svg>
+              <input type="text" name="company" id="id_company" maxlength="120"
+                     value="{{ form.company.value|default:'' }}" autocomplete="organization">
+            </div>
+          </div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
             <label for="id_email">{% t "contact.email" %}</label>
             <div class="control">
               <svg aria-hidden="true"><use href="#i-mail"></use></svg>
@@ -100,9 +136,6 @@
             </div>
             {% for e in form.email.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
           </div>
-        </div>
-
-        <div class="row-2">
           {% comment %}The phone number is optional, and says so on the label rather
              than only in the markup: a required-looking field is a field people
              skip the whole form over.{% endcomment %}
@@ -119,12 +152,40 @@
             </div>
             {% for e in form.phone.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
           </div>
-          <div class="field">
-            <label for="id_subject">{% t "contact.subject" %}</label>
-            <div class="control">
-              <svg aria-hidden="true"><use href="#i-pen"></use></svg>
-              <input type="text" name="subject" id="id_subject" maxlength="160" value="{{ form.subject.value|default:'' }}">
-            </div>
+        </div>
+
+        {% comment %}Type and timeline are one tap each rather than a dropdown: four
+           short options read faster laid out than folded away. Both are
+           optional — nothing picked is "other" and "flexible".{% endcomment %}
+        <fieldset class="field">
+          <legend>{% t "contact.kind" %}</legend>
+          <div class="choices">
+            {% for value, _ in form.kind.field.choices %}
+              <label class="choice">
+                <input type="radio" name="kind" value="{{ value }}" {% if form.kind.value == value %}checked{% endif %}>
+                <span>{% t "kind."|add:value %}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <fieldset class="field">
+          <legend>{% t "contact.timeline" %}</legend>
+          <div class="choices">
+            {% for value, _ in form.timeline.field.choices %}
+              <label class="choice">
+                <input type="radio" name="timeline" value="{{ value }}" {% if form.timeline.value == value %}checked{% endif %}>
+                <span><svg aria-hidden="true"><use href="#i-clock"></use></svg>{% t "timeline."|add:value %}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <div class="field">
+          <label for="id_subject">{% t "contact.subject" %}</label>
+          <div class="control">
+            <svg aria-hidden="true"><use href="#i-pen"></use></svg>
+            <input type="text" name="subject" id="id_subject" maxlength="160" value="{{ form.subject.value|default:'' }}">
           </div>
         </div>
 

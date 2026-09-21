@@ -1607,6 +1607,77 @@ body[dir="ltr"] .card-link:hover > .fwd { translate: 4px 0; }
 @media (max-width: 560px) { .row-2 { grid-template-columns: minmax(0, 1fr); } }
 .form-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px; }
 
+/* A group of radio options is a fieldset, and reads like any other field. */
+fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
+fieldset.field legend { padding: 0; margin-bottom: 7px; font-size: var(--step--1); font-weight: 700; color: var(--ink-2); }
+
+/* One-tap choices: a radio that looks like a chip. The input stays in the
+   page (not display: none), so the arrow keys, the form and a screen reader
+   all still see a plain radio group. */
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { position: relative; display: inline-flex; }
+.choice input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.choice span {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--ink-2);
+  font-size: var(--step--1); font-weight: 600; line-height: 1.5;
+  transition: background-color .2s, border-color .2s, color .2s, transform .25s var(--spring), box-shadow .2s;
+}
+.choice span svg { width: 15px; height: 15px; color: var(--mute); transition: color .2s; }
+.choice:hover span { border-color: rgba(var(--accent-rgb), .85); color: var(--accent-deep); background: var(--accent-tint); transform: translateY(-1px); }
+.choice input:checked + span {
+  background: var(--accent); border-color: rgba(var(--accent-rgb), 1); color: var(--on-accent); box-shadow: var(--glow);
+}
+.choice input:checked + span svg { color: var(--on-accent); }
+.choice input:focus-visible + span { outline: none; box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .45); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   16b · FOLLOWING A REQUEST
+   The tracking code after sending, the lookup form, and the conversation.
+   ══════════════════════════════════════════════════════════════════════════ */
+.code-card {
+  display: grid; gap: 10px; justify-items: start; padding: 16px 18px; border-radius: var(--r);
+  background: var(--accent-tint); border: 1px dashed rgba(var(--accent-rgb), .9);
+  animation: rise .6s .1s var(--spring) both;
+}
+.code-card-label { font-size: 12px; font-weight: 700; color: var(--accent-deep); }
+.code-card-row { display: inline-flex; align-items: center; gap: 10px; }
+.track-code {
+  font-family: var(--mono); font-size: var(--step-2); font-weight: 600; letter-spacing: .12em;
+  color: var(--ink); direction: ltr; unicode-bidi: isolate; user-select: all;
+}
+.track-narrow { width: min(100% - 2.4rem, 46rem); }
+.field .track-input { font-family: var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+.field .track-input::placeholder { letter-spacing: .14em; }
+.track-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 16px; }
+.inline-ico { width: 14px; height: 14px; vertical-align: -2px; margin-inline-end: 6px; color: var(--accent-strong); }
+
+.thread { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+.bubble {
+  position: relative; width: min(90%, 36rem); padding: 14px 18px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-1);
+  animation: rise .5s var(--spring) both;
+}
+/* The visitor's own turns sit at the end of the line, the owner's at the
+   start — in RTL that is left and right, in LTR the other way round. */
+.bubble.is-mine { margin-inline-start: auto; border-end-end-radius: 6px; }
+.bubble.is-owner {
+  margin-inline-end: auto; border-end-start-radius: 6px;
+  background: var(--accent-tint); border-color: rgba(var(--accent-rgb), .7);
+}
+.bubble-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; margin-bottom: 6px; }
+.bubble-head b { font-size: var(--step--1); color: var(--ink); }
+.bubble.is-owner .bubble-head b { color: var(--accent-deep); }
+.bubble-head time { font-size: 11.5px; color: var(--mute); }
+.bubble-body { color: var(--ink-2); line-height: 1.9; overflow-wrap: anywhere; }
+body[dir="ltr"] .bubble-body { line-height: 1.7; }
+.thread-waiting { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: var(--step--1); color: var(--mute); }
+.thread-waiting svg { width: 16px; height: 16px; flex: none; color: var(--accent-strong); }
+.track-reply { margin-top: 22px; }
+.track-reply textarea { min-height: 120px; }
+#thread-end { scroll-margin-top: 120px; }
+
 /* ══════════════════════════════════════════════════════════════════════════
    17 · THE BUSINESS CARD
    ══════════════════════════════════════════════════════════════════════════ */

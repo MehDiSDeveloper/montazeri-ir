@@ -15,18 +15,29 @@ import time
 import segno
 from django.conf import settings
 from django.contrib.syndication.views import Feed
+from django.core.cache import cache
 from django.http import Http404, HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.crypto import constant_time_compare
 from django.utils.translation import get_language
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.content.models import Experience, Post, Profile, Project, Service, SkillGroup
+from apps.content.models import (
+    Experience,
+    Message,
+    Post,
+    Profile,
+    Project,
+    Service,
+    SkillGroup,
+    normalise_tracking_code,
+)
 
 from . import bot
-from .forms import ContactForm
+from .forms import ContactForm, ReplyForm, TrackForm
+from .geo import client_ip
 from .i18n import t
 
 log = logging.getLogger("bot")
@@ -105,14 +116,16 @@ def contact(request):
     sent = request.GET.get("sent") == "1"
     # "Start a project" links here with ?topic=project, so the subject is
     # already filled in and the message is easy to spot in the admin list.
-    initial = {"subject": t("services.subject")} if request.GET.get("topic") == "project" else {}
+    if request.GET.get("topic") == "project":
+        initial = {"subject": t("services.subject"), "kind": Message.Kind.PROJECT}
+    else:
+        initial = {}
     form = ContactForm(initial=initial)
     throttled = False
 
     if request.method == "POST":
         form = ContactForm(request.POST)
-        last = request.session.get("contact_last_sent", 0)
-        throttled = (time.time() - last) < settings.CONTACT_RATE_LIMIT_SECONDS
+        throttled = _too_soon(request)
 
         if form.is_valid() and not throttled:
             if form.is_spam():
@@ -124,9 +137,93 @@ def contact(request):
             # that is slow or down may not cost a lead. See apps/core/bot.py.
             bot.notify_new(message)
             request.session["contact_last_sent"] = time.time()
+            # The code goes in the session, not the URL: the thank-you page is
+            # the same address for everyone, and a bot learns nothing from it.
+            request.session["contact_last_code"] = message.tracking_code
             return redirect(f"{reverse('contact')}?sent=1")
 
-    return render(request, "pages/contact.html", {"form": form, "sent": sent, "throttled": throttled})
+    return render(
+        request,
+        "pages/contact.html",
+        {
+            "form": form,
+            "sent": sent,
+            "throttled": throttled,
+            "tracking_code": request.session.get("contact_last_code") if sent else None,
+        },
+    )
+
+
+def _too_soon(request) -> bool:
+    """One message a minute per visitor — a new request or a reply alike."""
+    last = request.session.get("contact_last_sent", 0)
+    return (time.time() - last) < settings.CONTACT_RATE_LIMIT_SECONDS
+
+
+# ── following a request ────────────────────────────────────────────────────
+def _misses_key(request) -> str:
+    return f"track-miss:{client_ip(request) or 'unknown'}"
+
+
+def track(request):
+    """Where a visitor types their tracking code.
+
+    The code is the key to the conversation, so guessing is what to stop: a
+    run of wrong codes from one address is refused for a while, the way a
+    wrong password would be.
+    """
+    form = TrackForm(request.POST or None)
+    locked = cache.get(_misses_key(request), 0) >= settings.TRACK_LOOKUP_LIMIT
+
+    if request.method == "POST" and not locked and form.is_valid():
+        code = form.cleaned_data["code"]
+        if Message.objects.filter(tracking_code=code).exists():
+            return redirect("track_detail", code=code)
+        cache.set(_misses_key(request), cache.get(_misses_key(request), 0) + 1, settings.TRACK_LOOKUP_WINDOW_SECONDS)
+        form.add_error("code", t("track.not_found"))
+
+    return render(request, "pages/track.html", {"form": form, "locked": locked}, status=429 if locked else 200)
+
+
+def track_detail(request, code: str):
+    """One request and its conversation, as the visitor sees it.
+
+    A reply from here is the visitor's turn: it is saved under the request,
+    puts it back to «new» — whatever state it was in — and is announced in
+    Bale the way a new request is. POST → save → redirect, like the form.
+    """
+    canonical = normalise_tracking_code(code)
+    if not canonical:
+        raise Http404
+    if canonical != code:
+        return redirect("track_detail", code=canonical)
+    message = get_object_or_404(Message, tracking_code=canonical)
+
+    form = ReplyForm()
+    throttled = False
+    if request.method == "POST":
+        form = ReplyForm(request.POST)
+        throttled = _too_soon(request)
+        if form.is_valid() and not throttled:
+            if not form.is_spam():
+                message.add_reply(form.cleaned_data["body"], from_owner=False)
+                bot.notify_reply(message)
+                request.session["contact_last_sent"] = time.time()
+            return redirect(f"{reverse('track_detail', args=[canonical])}?sent=1#thread-end")
+
+    replies = list(message.replies.all())
+    return render(
+        request,
+        "pages/track_detail.html",
+        {
+            "message": message,
+            "replies": replies,
+            "has_owner_reply": any(reply.from_owner for reply in replies),
+            "form": form,
+            "sent": request.GET.get("sent") == "1",
+            "throttled": throttled,
+        },
+    )
 
 
 def card(request):
@@ -203,6 +300,9 @@ def robots(request):
             "Disallow: /i18n/",
             "Disallow: /healthz",
             "Disallow: /bot/",
+            "Disallow: /contact/track/",
+            "Disallow: /en/contact/track/",
+            "Disallow: /de/contact/track/",
             f"Sitemap: {settings.SITE_URL}/sitemap.xml",
             "",
         ]

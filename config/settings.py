@@ -240,6 +240,11 @@ LOGGING = {
 # ── Site-level knobs the templates read ────────────────────────────────────
 SITE_URL = os.environ.get("DJANGO_SITE_URL", "https://montazeri.ir").rstrip("/")
 CONTACT_RATE_LIMIT_SECONDS = 60
+# Wrong tracking codes one address may try before the lookup is refused for
+# the rest of the window. A real visitor mistypes two or three times; a
+# guesser needs hundreds of billions.
+TRACK_LOOKUP_LIMIT = 10
+TRACK_LOOKUP_WINDOW_SECONDS = 15 * 60
 
 # ── The messenger bot: a new request arrives in Bale ───────────────────────
 # Bale (tapi.bale.ai) speaks the Telegram bot API, so one client covers both

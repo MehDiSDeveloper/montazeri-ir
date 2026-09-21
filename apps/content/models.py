@@ -20,6 +20,8 @@ personal site wants anyway.
 
 from __future__ import annotations
 
+import secrets
+from datetime import timedelta
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -478,14 +480,38 @@ class PostImage(models.Model):
 
 
 # ── Messages from the contact form ─────────────────────────────────────────
+# Unambiguous on a screen and on a phone keyboard: no 0/O, 1/I/L. Eight of
+# them is 31^8 ≈ 8.5 × 10^11 codes, and failed lookups are throttled on top.
+TRACKING_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+TRACKING_LENGTH = 8
+
+
+def new_tracking_code() -> str:
+    raw = "".join(secrets.choice(TRACKING_ALPHABET) for _ in range(TRACKING_LENGTH))
+    return f"{raw[:4]}-{raw[4:]}"
+
+
+def normalise_tracking_code(value: str) -> str:
+    """Whatever the visitor typed, in the shape the column stores: case,
+    spaces and a missing or doubled dash do not matter."""
+    raw = "".join(ch for ch in (value or "").upper() if ch in TRACKING_ALPHABET)
+    return f"{raw[:4]}-{raw[4:]}" if len(raw) == TRACKING_LENGTH else ""
+
+
 class Message(models.Model):
     """What the contact form saves — and, when it is a project enquiry, a lead.
 
     A lead has a life cycle, so this carries a `status` rather than a handled
-    flag: a request is new until it has been read, and after that it is either
-    still open, refused or put away. The same four states are what the Bale
-    bot's buttons set, so the phone and the admin can never disagree about
-    where a request stands.
+    flag: a request is new until it has been read, answered once a reply has
+    gone back, and at any point it may be refused or put away. The same states
+    are what the Bale bot's buttons set, so the phone and the admin can never
+    disagree about where a request stands.
+
+    A request is also a conversation. The visitor gets a `tracking_code`, and
+    with it the page at /contact/track/<code>/ where both sides write `Reply`
+    rows under the original message, as many as it takes. A reply from the
+    visitor puts the request back to «new», whatever state it was in — someone
+    is waiting again.
 
     `notes` is private. Nothing a visitor can reach renders it.
     """
@@ -493,18 +519,48 @@ class Message(models.Model):
     class Status(models.TextChoices):
         NEW = "new", "جدید — new"
         READ = "read", "خوانده‌شده — read"
+        ANSWERED = "answered", "پاسخ داده شده — answered"
         REJECTED = "rejected", "رد شده — rejected"
         ARCHIVED = "archived", "بایگانی — archived"
 
+    # «Active» is what still needs the owner: everything except a request that
+    # is waiting on the visitor, refused, or put away.
+    INACTIVE = (Status.ANSWERED, Status.REJECTED, Status.ARCHIVED)
+    ACTIVE = (Status.NEW, Status.READ)
+
+    class Kind(models.TextChoices):
+        PROJECT = "project", "پروژه — project"
+        JOB = "job", "پیشنهاد شغلی — job offer"
+        CONSULT = "consult", "مشاوره — consulting"
+        OTHER = "other", "سایر — other"
+
+    class Timeline(models.TextChoices):
+        """How soon the visitor needs it, relative to when they asked. The
+        choice becomes a real date in `due_at`, which is what the admin sorts
+        and filters by."""
+
+        WEEK = "week", "تا یک هفته — within a week"
+        MONTH = "month", "تا یک ماه — within a month"
+        QUARTER = "quarter", "تا سه ماه — within three months"
+        FLEXIBLE = "flexible", "انعطاف‌پذیر — flexible"
+
+    TIMELINE_DAYS = {Timeline.WEEK: 7, Timeline.MONTH: 30, Timeline.QUARTER: 90}
+
     name = models.CharField(max_length=120)
+    company = models.CharField(max_length=120, blank=True)
     email = models.EmailField()
     # Optional: a phone number is how most Iranian clients expect to be
     # answered, but asking for one as a requirement costs replies.
     phone = models.CharField(max_length=32, blank=True)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.OTHER)
+    timeline = models.CharField(max_length=16, choices=Timeline.choices, default=Timeline.FLEXIBLE)
+    due_at = models.DateTimeField(null=True, blank=True, db_index=True)
     subject = models.CharField(max_length=160, blank=True)
     body = models.TextField()
     language = models.CharField(max_length=8, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    tracking_code = models.CharField(max_length=9, unique=True, default=new_tracking_code, editable=False)
 
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.NEW)
     read_at = models.DateTimeField(null=True, blank=True)
@@ -524,11 +580,23 @@ class Message(models.Model):
         indexes = [models.Index(fields=["status", "-created_at"])]
 
     def __str__(self) -> str:
-        return f"{self.name} — {self.created_at:%Y-%m-%d}"
+        return f"#{self.pk} {self.name} — {self.created_at:%Y-%m-%d}"
+
+    def save(self, *args, **kwargs):
+        # The deadline is fixed when the request arrives: "within a week" means
+        # a week from the day it was asked, not from whenever it was opened.
+        if self.due_at is None and self.timeline in self.TIMELINE_DAYS:
+            start = self.created_at or timezone.now()
+            self.due_at = start + timedelta(days=self.TIMELINE_DAYS[self.timeline])
+        super().save(*args, **kwargs)
 
     @property
     def is_new(self) -> bool:
         return self.status == self.Status.NEW
+
+    @property
+    def is_active(self) -> bool:
+        return self.status in self.ACTIVE
 
     @property
     def admin_path(self) -> str:
@@ -537,6 +605,19 @@ class Message(models.Model):
     @property
     def admin_url(self) -> str:
         return f"{settings.SITE_URL}{self.admin_path}"
+
+    def get_absolute_url(self) -> str:
+        """The visitor's tracking page, in the language they wrote in."""
+        from django.utils.translation import override  # local: the one caller
+
+        with override(self.language or DEFAULT_LANG):
+            return reverse("track_detail", args=[self.tracking_code])
+
+    def days_left(self) -> int | None:
+        """Whole days until the visitor's deadline; negative once it passed."""
+        if self.due_at is None:
+            return None
+        return (timezone.localtime(self.due_at).date() - timezone.localdate()).days
 
     def set_status(self, status: str) -> bool:
         """Move to `status`. False when it was already there, so a double tap
@@ -551,6 +632,17 @@ class Message(models.Model):
         self.save(update_fields=["status", "read_at"])
         return True
 
+    def add_reply(self, body: str, *, from_owner: bool) -> "Reply":
+        """One more turn in the conversation, and the status that follows it.
+
+        The owner answering makes it «answered»; the visitor writing back makes
+        it «new» again, from any state — a refused or archived request someone
+        has just written to is a request somebody is waiting on.
+        """
+        reply = self.replies.create(body=body.strip(), from_owner=from_owner)
+        self.set_status(self.Status.ANSWERED if from_owner else self.Status.NEW)
+        return reply
+
     def add_note(self, text: str) -> str:
         """Append one dated line to the private notes. Returns the line."""
         from apps.core.jalali import to_jalali  # local: keeps content free of core at import time
@@ -563,6 +655,28 @@ class Message(models.Model):
         return entry
 
 
+class Reply(models.Model):
+    """One turn in a request's conversation, from either side.
+
+    Replies are a record, like the request itself: neither side edits or
+    deletes one, they write another. That is what makes the thread something
+    both people can point back to later.
+    """
+
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="replies")
+    from_owner = models.BooleanField(default=False)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at", "pk")
+        verbose_name_plural = "replies"
+
+    def __str__(self) -> str:
+        side = "owner" if self.from_owner else "visitor"
+        return f"#{self.message_id} {side} — {self.created_at:%Y-%m-%d %H:%M}"
+
+
 class BotState(models.Model):
     """The bot's memory. One row, because there is one bot and one owner.
 
@@ -572,7 +686,9 @@ class BotState(models.Model):
       or a restarted poller can never archive the same request twice.
     * `awaiting_note_for` — which request a note is being written for, because
       «یادداشت» is a button press first and a text message second, and the two
-      arrive as separate updates.
+      arrive as separate updates. `awaiting_reply` says the text that follows
+      is an answer for the visitor rather than a private note — «پاسخ» works
+      the same way.
     """
 
     last_update_id = models.BigIntegerField(default=0)
@@ -580,6 +696,7 @@ class BotState(models.Model):
         Message, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     awaiting_since = models.DateTimeField(null=True, blank=True)
+    awaiting_reply = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "bot state"
@@ -605,10 +722,11 @@ class BotState(models.Model):
             self.save(update_fields=["last_update_id"])
         return True
 
-    def await_note_for(self, message: "Message") -> None:
+    def await_note_for(self, message: "Message", *, reply: bool = False) -> None:
         self.awaiting_note_for = message
         self.awaiting_since = timezone.now()
-        self.save(update_fields=["awaiting_note_for", "awaiting_since"])
+        self.awaiting_reply = reply
+        self.save(update_fields=["awaiting_note_for", "awaiting_since", "awaiting_reply"])
 
     def pending_note_target(self) -> "Message | None":
         """The request a plain text message should be filed under, if any."""
@@ -620,7 +738,8 @@ class BotState(models.Model):
         return self.awaiting_note_for
 
     def clear_note_target(self) -> None:
-        if self.awaiting_note_for_id or self.awaiting_since:
+        if self.awaiting_note_for_id or self.awaiting_since or self.awaiting_reply:
             self.awaiting_note_for = None
             self.awaiting_since = None
-            self.save(update_fields=["awaiting_note_for", "awaiting_since"])
+            self.awaiting_reply = False
+            self.save(update_fields=["awaiting_note_for", "awaiting_since", "awaiting_reply"])

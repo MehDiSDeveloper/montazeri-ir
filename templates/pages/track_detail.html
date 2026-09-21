@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load site_tags %}
+
+{% block title %}{% t "track.request" %} {{ message.tracking_code }} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{% t "track.lede" %}{% endblock %}
+{% comment %}The address is the key to a private conversation: never indexed, and
+   the links on it are not followed on its behalf.{% endcomment %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<section class="page-head" data-accent="peach">
+  <div class="narrow track-narrow">
+    <span class="eyebrow">{% t "track.request" %} · <span class="mono">{{ message.tracking_code }}</span></span>
+    <h1 class="page-title" dir="auto">{% firstof message.subject message.name %}</h1>
+    <div class="track-meta">
+      <span class="pill" data-accent="{% if message.status == 'answered' %}mint{% else %}peach{% endif %}">
+        <span class="pill-dot{% if message.status == 'new' or message.status == 'read' %} live{% endif %}" aria-hidden="true"></span>
+        {% t "track.status" %}: {% t "status."|add:message.status %}
+      </span>
+      <span class="post-meta"><svg aria-hidden="true"><use href="#i-calendar"></use></svg>{% t "track.sent_on" %} {{ message.created_at|smart_date:"day-month-year" }}</span>
+      <span class="post-meta"><svg aria-hidden="true"><use href="#i-target"></use></svg>{% t "kind."|add:message.kind %}</span>
+      <span class="post-meta"><svg aria-hidden="true"><use href="#i-clock"></use></svg>{% t "timeline."|add:message.timeline %}</span>
+    </div>
+  </div>
+</section>
+
+<section class="sec sec-flush" data-accent="peach">
+  <div class="narrow track-narrow">
+    <h2 class="side-h"><span class="block-ico" aria-hidden="true"><svg><use href="#i-send"></use></svg></span>{% t "track.conversation" %}</h2>
+
+    {% comment %}The thread, oldest first, starting with the request itself. The
+       visitor's turns sit on one side and the owner's on the other, the way
+       every chat a phone has already taught them to read.{% endcomment %}
+    <ol class="thread">
+      <li class="bubble is-mine">
+        <div class="bubble-head"><b>{% t "track.you" %}</b><time datetime="{{ message.created_at|iso }}">{{ message.created_at|smart_date:"day-month-year" }} · {{ message.created_at|time:"H:i"|fa_num }}</time></div>
+        <div class="bubble-body" dir="auto">{{ message.body|linebreaksbr }}</div>
+      </li>
+      {% for reply in replies %}
+        <li class="bubble{% if reply.from_owner %} is-owner{% else %} is-mine{% endif %}"{% if forloop.last %} id="thread-end"{% endif %}>
+          <div class="bubble-head">
+            <b>{% if reply.from_owner %}{{ profile|tr:"full_name" }}{% else %}{% t "track.you" %}{% endif %}</b>
+            <time datetime="{{ reply.created_at|iso }}">{{ reply.created_at|smart_date:"day-month-year" }} · {{ reply.created_at|time:"H:i"|fa_num }}</time>
+          </div>
+          <div class="bubble-body" dir="auto">{{ reply.body|linebreaksbr }}</div>
+        </li>
+      {% endfor %}
+    </ol>
+
+    {% if not has_owner_reply %}
+      <p class="thread-waiting"><svg aria-hidden="true"><use href="#i-clock"></use></svg>{% t "track.waiting" %}</p>
+    {% endif %}
+
+    {% if sent %}
+      <div class="note note-ok" data-accent="mint" role="status" style="margin-top:20px">
+        <span class="note-ico" aria-hidden="true"><svg><use href="#i-check"></use></svg></span>
+        <span>{% t "track.reply_sent" %}</span>
+      </div>
+    {% endif %}
+    {% if throttled %}
+      <div class="note" role="alert" style="margin-top:20px">
+        <span class="note-ico" aria-hidden="true"><svg><use href="#i-info"></use></svg></span>
+        <span>{% t "contact.too_fast" %}</span>
+      </div>
+    {% endif %}
+
+    <form class="form reveal track-reply" method="post" action="{% url 'track_detail' message.tracking_code %}" novalidate data-form id="reply">
+      {% csrf_token %}
+      <div class="hp" aria-hidden="true">
+        <label for="id_website">Website</label>
+        <input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="id_body">{% t "track.reply" %}</label>
+        <div class="control">
+          <textarea name="body" id="id_body" rows="4" required maxlength="4000" dir="auto" data-count
+                    aria-describedby="reply-hint">{{ form.body.value|default:'' }}</textarea>
+        </div>
+        <div class="field-foot">
+          <span id="reply-hint" class="field-hint">{% t "track.reply_hint" %}</span>
+          <span class="counter num" data-counter aria-hidden="true"></span>
+        </div>
+        {% for e in form.body.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
+      </div>
+      <div class="form-foot">
+        <span class="field-hint"><svg class="inline-ico" aria-hidden="true"><use href="#i-star"></use></svg>{% t "track.bookmark" %}</span>
+        <button class="btn btn-primary" type="submit" data-submit>
+          <span class="btn-label">{% t "track.reply_send" %}</span>
+          <svg class="fwd" aria-hidden="true"><use href="#i-send"></use></svg>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

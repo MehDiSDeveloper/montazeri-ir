@@ -37,6 +37,8 @@ urlpatterns += i18n_patterns(
     path("about/", core_views.about, name="about"),
     path("services/", core_views.services, name="services"),
     path("contact/", core_views.contact, name="contact"),
+    path("contact/track/", core_views.track, name="track"),
+    path("contact/track/<str:code>/", core_views.track_detail, name="track_detail"),
     path("card/", core_views.card, name="card"),
     path("resume/", core_views.resume, name="resume"),
     path("", include("apps.content.urls")),
