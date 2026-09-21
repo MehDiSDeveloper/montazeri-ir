@@ -3,36 +3,42 @@
 
 {% block title %}{% t "projects.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
 {% block description %}{% t "projects.lede" %}{% endblock %}
+{% block og_title %}{% t "projects.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block og_description %}{% t "projects.lede" %}{% endblock %}
 
 {% block content %}
 <section class="page-head">
   <div class="shell">
     <span class="eyebrow">Work</span>
-    <h1>{% t "projects.title" %}</h1>
+    <h1 class="page-title">{% t "projects.title" %}<span class="count num">{{ projects|length|fa_num }}</span></h1>
     <p class="sec-lede">{% t "projects.lede" %}</p>
   </div>
 </section>
 
-<section class="sec" style="padding-block-start:0">
+<section class="sec sec-flush">
   <div class="shell">
     {% if tags %}
-      <div class="chipbar no-print" data-filter-bar style="margin-bottom:26px">
-        <button class="chip" type="button" data-tag="" aria-pressed="true">{% t "projects.filter_all" %}</button>
+      <div class="chipbar no-print" data-filter-bar role="toolbar" aria-label="{% t 'tip.filter' %}" style="margin-bottom:28px">
+        <button class="chip" type="button" data-tag="" aria-pressed="{% if active_tag %}false{% else %}true{% endif %}">
+          {% t "projects.filter_all" %}<span class="chip-n num">{{ projects|length|fa_num }}</span>
+        </button>
         {% for tag in tags %}
-          <button class="chip" type="button" data-tag="{{ tag.slug }}" aria-pressed="false">{{ tag|tr:"name" }}</button>
+          <button class="chip" type="button" data-tag="{{ tag.slug }}" aria-pressed="{% if active_tag == tag.slug %}true{% else %}false{% endif %}">
+            {{ tag|tr:"name" }}<span class="chip-n num">{{ tag.n|fa_num }}</span>
+          </button>
         {% endfor %}
       </div>
     {% endif %}
 
-    <div class="grid-projects" data-filter-list>
+    <div class="grid-projects rhythm" data-filter-list>
       {% for project in projects %}
         {% include "partials/project_card.html" with project=project index=forloop.counter %}
       {% empty %}
-        <p style="color:var(--mute)">{% t "projects.empty" %}</p>
+        <p class="empty">{% t "projects.empty" %}</p>
       {% endfor %}
     </div>
 
-    <p data-filter-empty hidden style="color:var(--mute);padding-block:32px;text-align:center">{% t "projects.empty" %}</p>
+    <p class="empty" data-filter-empty hidden>{% t "projects.empty" %}</p>
   </div>
 </section>
 {% endblock %}

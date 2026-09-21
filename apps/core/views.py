@@ -8,20 +8,28 @@ JavaScript in static/js/app.js only improves what is already on the screen.
 
 from __future__ import annotations
 
+import json
+import logging
 import time
 
 import segno
 from django.conf import settings
 from django.contrib.syndication.views import Feed
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.crypto import constant_time_compare
 from django.utils.translation import get_language
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
-from apps.content.models import Experience, Post, Profile, Project, SkillGroup
+from apps.content.models import Experience, Post, Profile, Project, Service, SkillGroup
 
+from . import bot
 from .forms import ContactForm
 from .i18n import t
+
+log = logging.getLogger("bot")
 
 
 def _skill_groups():
@@ -37,23 +45,47 @@ def _published_posts():
 
 
 # ── pages ──────────────────────────────────────────────────────────────────
+HERO_EXTRA_SKILLS = ("PostgreSQL",)
+
+
 def home(request):
     profile = Profile.load()
     featured = list(_published_projects().filter(is_featured=True)[:3])
     if not featured:
         featured = list(_published_projects()[:3])
+    groups = list(_skill_groups())
+    # The chips floating round the portrait: the first primary skill of each
+    # group, so four chips say four different things instead of "C#" three ways,
+    # plus the named extras — PostgreSQL is the database of the recent projects
+    # and would otherwise lose its group's slot to SQL Server.
+    firsts = [next((s for s in g.skills.all() if s.is_primary), None) for g in groups]
+    extras = [s for g in groups for s in g.skills.all() if s.name in HERO_EXTRA_SKILLS]
     return render(
         request,
         "pages/home.html",
         {
             "featured_projects": featured,
-            "skill_groups": _skill_groups(),
-            "primary_skills": [s for g in _skill_groups() for s in g.skills.all() if s.is_primary][:10],
+            "skill_groups": groups,
+            "primary_skills": [s for g in groups for s in g.skills.all() if s.is_primary][:10],
+            "hero_skills": [s for s in firsts if s][:4] + [s for s in extras if s not in firsts],
             "experiences": Experience.objects.filter(kind=Experience.Kind.WORK)[:3],
             "posts": _published_posts()[:2],
+            "services": list(Service.objects.all()),
             "profile": profile,
         },
     )
+
+
+def services(request):
+    """Project work: what a client gets, and the one button that starts it.
+
+    It is the page that earns, so it is a real indexed URL in all three
+    languages rather than a section only the home page has. No offer written,
+    no page — the nav link and the home band disappear with it.
+    """
+    if not Profile.load().tr("offer_title"):
+        raise Http404
+    return render(request, "pages/services.html", {"services": list(Service.objects.all())})
 
 
 def about(request):
@@ -71,7 +103,10 @@ def about(request):
 def contact(request):
     """POST -> save -> redirect. A refresh must never resend a message."""
     sent = request.GET.get("sent") == "1"
-    form = ContactForm()
+    # "Start a project" links here with ?topic=project, so the subject is
+    # already filled in and the message is easy to spot in the admin list.
+    initial = {"subject": t("services.subject")} if request.GET.get("topic") == "project" else {}
+    form = ContactForm(initial=initial)
     throttled = False
 
     if request.method == "POST":
@@ -85,6 +120,9 @@ def contact(request):
             message = form.save(commit=False)
             message.language = get_language() or settings.LANGUAGE_CODE
             message.save()
+            # The request is stored first and announced second: a messenger
+            # that is slow or down may not cost a lead. See apps/core/bot.py.
+            bot.notify_new(message)
             request.session["contact_last_sent"] = time.time()
             return redirect(f"{reverse('contact')}?sent=1")
 
@@ -147,7 +185,7 @@ def vcard(request):
     if p.github:
         lines.append(f"X-SOCIALPROFILE;TYPE=github:https://github.com/{p.github.strip('/').split('/')[-1]}")
     if p.linkedin:
-        lines.append(f"X-SOCIALPROFILE;TYPE=linkedin:https://linkedin.com/in/{p.linkedin.strip('/').split('/')[-1]}")
+        lines.append(f"X-SOCIALPROFILE;TYPE=linkedin:https://www.linkedin.com/in/{p.linkedin.strip('/').split('/')[-1]}")
     lines.append("END:VCARD")
 
     body = "\r\n".join(lines) + "\r\n"
@@ -162,6 +200,9 @@ def robots(request):
             "User-agent: *",
             "Allow: /",
             "Disallow: /admin/",
+            "Disallow: /i18n/",
+            "Disallow: /healthz",
+            "Disallow: /bot/",
             f"Sitemap: {settings.SITE_URL}/sitemap.xml",
             "",
         ]
@@ -170,6 +211,39 @@ def robots(request):
 
 
 def healthz(request):
+    return HttpResponse("ok", content_type="text/plain")
+
+
+@csrf_exempt
+@require_POST
+def bot_webhook(request, secret: str):
+    """Where Bale posts a button press or a note.
+
+    A webhook rather than long-polling because this site is one container with
+    one process: a poller would need a second one, and a public HTTPS address
+    already exists. `manage.py bale poll` covers the case where it does not —
+    local work, mostly.
+
+    Three things guard it: an unguessable path compared in constant time, the
+    endpoint not existing at all when no secret is configured, and every
+    action in bot.py checking the update really came from the owner's chat.
+    A malformed body is answered 200 and dropped, because a messenger that is
+    told "error" will send the same update again, forever.
+    """
+    if not settings.BOT_WEBHOOK_SECRET or not constant_time_compare(secret, settings.BOT_WEBHOOK_SECRET):
+        raise Http404
+
+    try:
+        update = json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return HttpResponse("ok", content_type="text/plain")
+
+    if isinstance(update, dict):
+        try:
+            bot.handle_update(update)
+        except Exception:  # noqa: BLE001 — never ask for a redelivery
+            log.exception("bot: handling update %s failed", update.get("update_id"))
+
     return HttpResponse("ok", content_type="text/plain")
 
 
@@ -182,8 +256,11 @@ class PostFeed(Feed):
     def description(self):
         return Profile.load().tr("headline")
 
+    def author_name(self):
+        return Profile.load().tr("full_name")
+
     def items(self):
-        return Post.objects.filter(is_published=True)[:20]
+        return Post.objects.filter(is_published=True).prefetch_related("tags")[:20]
 
     def item_title(self, item):
         return item.tr("title")
@@ -193,6 +270,12 @@ class PostFeed(Feed):
 
     def item_pubdate(self, item):
         return item.published_at
+
+    def item_updateddate(self, item):
+        return item.updated_at
+
+    def item_categories(self, item):
+        return [tag.tr("name") for tag in item.tags.all()]
 
 
 # ── error pages ────────────────────────────────────────────────────────────

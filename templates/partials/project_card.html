@@ -1,26 +1,31 @@
 {% load site_tags %}
 {% comment %}
-One card, used by the home page, the project list and nothing else. The cover
-is the same box whether or not there is an image: when `cover` lands it fills
-the box, and when it does not the project's index sits there in the display
-face over the pastel field. Nothing around it moves either way.
+One card, used by the project list. The cover is the same box whether or not
+there is an image: when `cover` lands it fills the box, and when it does not
+the project's index sits there over the pastel field. Nothing around it moves
+either way.
 {% endcomment %}
-<a class="pcard reveal" href="{{ project.get_absolute_url }}" data-tags="{% for tag in project.tags.all %}{{ tag.slug }} {% endfor %}">
+<a class="pcard reveal" href="{{ project.get_absolute_url }}" data-tags="{% for tag in project.tags.all %}{{ tag.slug }} {% endfor %}" data-spot>
   <div class="pcard-cover">
     {% if project.cover %}
       <img src="{{ project.cover.url }}" alt="" loading="lazy" width="480" height="300">
     {% else %}
-      <span class="pcard-index" aria-hidden="true">{{ index|stringformat:"02d" }}</span>
+      <span class="cover-art" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="cover-index" aria-hidden="true">{{ index|stringformat:"02d" }}</span>
     {% endif %}
-    {% if project.year %}<span class="pcard-year num">{{ project.year|fa_num }}</span>{% endif %}
+    {% if project.year %}
+      <span class="cover-year num"><svg width="12" height="12" aria-hidden="true"><use href="#i-calendar"></use></svg>{{ project.year|fa_num }}</span>
+    {% endif %}
+    <span class="pcard-go" aria-hidden="true"><svg class="fwd"><use href="#i-arrow"></use></svg></span>
   </div>
 
   <div class="pcard-body">
     <h3 class="pcard-title">{{ project|tr:"title" }}</h3>
     <p class="pcard-sum">{{ project|tr:"summary" }}</p>
     {% if project.stack_list %}
-      <div class="pcard-stack">
+      <div class="stack">
         {% for item in project.stack_list|slice:":4" %}<i>{{ item }}</i>{% endfor %}
+        {% if project.stack_list|length > 4 %}<i class="more-n" data-tip="{{ project.stack_list|slice:'4:'|join:', ' }}">+{{ project.stack_list|length|add:"-4" }}</i>{% endif %}
       </div>
     {% endif %}
   </div>

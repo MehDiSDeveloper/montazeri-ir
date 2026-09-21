@@ -3,72 +3,80 @@
 
 {% block title %}{% t "contact.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
 {% block description %}{% t "contact.lede" %}{% endblock %}
+{% block robots %}{% if sent or throttled %}noindex, follow{% else %}{{ block.super }}{% endif %}{% endblock %}
 
 {% block content %}
-<section class="page-head">
+<section class="page-head" data-accent="peach">
   <div class="shell">
     <span class="eyebrow">Contact</span>
-    <h1>{% t "contact.title" %}</h1>
+    <h1 class="page-title">{% t "contact.title" %}</h1>
     <p class="sec-lede">{% t "contact.lede" %}</p>
   </div>
 </section>
 
-<section class="sec" style="padding-block-start:0">
+<section class="sec sec-flush">
   <div class="shell contact-grid">
 
     {% comment %}Direct channels first: most people who open this page want an address,
-       not a form. Each row copies itself with one tap.{% endcomment %}
+       not a form. Each row opens or copies itself with one tap.{% endcomment %}
     <div>
-      <div class="sec-head" style="margin-bottom:14px">
-        <div><span class="eyebrow">{% t "contact.direct" %}</span></div>
-      </div>
-      <ul class="channels">
+      <h2 class="side-h"><span class="block-ico" aria-hidden="true"><svg><use href="#i-sparkle"></use></svg></span>{% t "contact.direct" %}</h2>
+      <ul class="channels rhythm">
         {% for link in profile.links %}
-          <li class="channel">
-            <span class="channel-ico"><svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg></span>
+          <li class="channel reveal" data-spot>
+            <span class="channel-ico" aria-hidden="true"><svg><use href="#i-{{ link.key }}"></use></svg></span>
             <span class="channel-txt">
-              <b>{{ link.key|capfirst }}</b>
+              <b>{% t "channel."|add:link.key %}</b>
               <span>{{ link.label }}</span>
             </span>
-            <a class="copy-btn" href="{{ link.href }}" target="_blank" rel="noopener" aria-label="{{ link.label }}">
+            <a class="mini-btn" href="{{ link.href }}" {% if link.key != "email" and link.key != "phone" %}target="_blank" rel="noopener"{% endif %}
+               aria-label="{% t 'tip.open' %} — {{ link.label }}" data-tip="{% t 'tip.open' %}">
               <svg aria-hidden="true"><use href="#i-external"></use></svg>
             </a>
-            <button class="copy-btn" type="button" data-copy="{{ link.copy }}"
-                    data-copied-label="{% t 'contact.copied' %}" aria-label="{% t 'contact.copy' %}">
+            <button class="mini-btn" type="button" data-copy="{{ link.copy }}"
+                    data-copied-label="{% t 'contact.copied' %}" aria-label="{% t 'contact.copy' %}" data-tip="{% t 'contact.copy' %}">
               <svg aria-hidden="true"><use href="#i-copy"></use></svg>
             </button>
           </li>
         {% endfor %}
       </ul>
 
-      <a class="btn btn-ghost" href="{% url 'card' %}" style="margin-top:16px;width:100%">
-        <svg aria-hidden="true"><use href="#i-doc"></use></svg>{% t "card.title" %}
+      <a class="card-link reveal" href="{% url 'card' %}" data-accent="mint" data-spot>
+        <span class="card-link-qr" aria-hidden="true"><svg><use href="#i-qr"></use></svg></span>
+        <span><b>{% t "card.title" %}</b><small>{% t "card.add_contact" %} · {% t "card.scan" %}</small></span>
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
       </a>
+
+      {% if has_offer %}
+        <a class="card-link reveal" href="{% url 'services' %}" data-accent="peach" data-spot style="margin-top:10px">
+          <span class="card-link-qr" aria-hidden="true"><svg><use href="#i-briefcase"></use></svg></span>
+          <span><b>{% t "nav.services" %}</b><small>{{ profile|tr:"offer_title" }}</small></span>
+          <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+        </a>
+      {% endif %}
     </div>
 
-    <div>
-      <div class="sec-head" style="margin-bottom:14px">
-        <div><span class="eyebrow" data-accent="clay">{% t "contact.form" %}</span></div>
-      </div>
+    <div data-accent="peach">
+      <h2 class="side-h"><span class="block-ico" aria-hidden="true"><svg><use href="#i-send"></use></svg></span>{% t "contact.form" %}</h2>
 
       {% if sent %}
-        <div class="note" style="margin-bottom:16px">
-          <svg aria-hidden="true"><use href="#i-check"></use></svg>
+        <div class="note note-ok" data-accent="mint" role="status" style="margin-bottom:16px">
+          <span class="note-ico" aria-hidden="true"><svg><use href="#i-check"></use></svg></span>
           <span>{% t "contact.sent" %}</span>
         </div>
       {% endif %}
       {% if throttled %}
-        <div class="note warn" style="margin-bottom:16px">
-          <svg aria-hidden="true"><use href="#i-info"></use></svg>
+        <div class="note" data-accent="peach" role="alert" style="margin-bottom:16px">
+          <span class="note-ico" aria-hidden="true"><svg><use href="#i-info"></use></svg></span>
           <span>{% t "contact.too_fast" %}</span>
         </div>
       {% endif %}
 
-      <form class="form" method="post" action="{% url 'contact' %}" novalidate>
+      <form class="form reveal" method="post" action="{% url 'contact' %}" novalidate data-form>
         {% csrf_token %}
 
         {# The honeypot. A human never sees it; a bot fills every field it finds. #}
-        <div style="position:absolute;left:-9999px" aria-hidden="true">
+        <div class="hp" aria-hidden="true">
           <label for="id_website">Website</label>
           <input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off">
         </div>
@@ -76,33 +84,68 @@
         <div class="row-2">
           <div class="field">
             <label for="id_name">{% t "contact.name" %}</label>
-            <input type="text" name="name" id="id_name" required maxlength="120"
-                   value="{{ form.name.value|default:'' }}" autocomplete="name">
-            {% for e in form.name.errors %}<span class="err">{{ e }}</span>{% endfor %}
+            <div class="control">
+              <svg aria-hidden="true"><use href="#i-user"></use></svg>
+              <input type="text" name="name" id="id_name" required maxlength="120"
+                     value="{{ form.name.value|default:'' }}" autocomplete="name">
+            </div>
+            {% for e in form.name.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
           </div>
           <div class="field">
             <label for="id_email">{% t "contact.email" %}</label>
-            <input type="email" name="email" id="id_email" required dir="ltr"
-                   value="{{ form.email.value|default:'' }}" autocomplete="email">
-            {% for e in form.email.errors %}<span class="err">{{ e }}</span>{% endfor %}
+            <div class="control">
+              <svg aria-hidden="true"><use href="#i-mail"></use></svg>
+              <input type="email" name="email" id="id_email" required dir="ltr"
+                     value="{{ form.email.value|default:'' }}" autocomplete="email">
+            </div>
+            {% for e in form.email.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
           </div>
         </div>
 
-        <div class="field">
-          <label for="id_subject">{% t "contact.subject" %}</label>
-          <input type="text" name="subject" id="id_subject" maxlength="160" value="{{ form.subject.value|default:'' }}">
+        <div class="row-2">
+          {% comment %}The phone number is optional, and says so on the label rather
+             than only in the markup: a required-looking field is a field people
+             skip the whole form over.{% endcomment %}
+          <div class="field">
+            <label for="id_phone">{% t "contact.phone" %} <small class="field-opt">{% t "contact.optional" %}</small></label>
+            <div class="control">
+              <svg aria-hidden="true"><use href="#i-phone"></use></svg>
+              <input type="tel" name="phone" id="id_phone" dir="ltr" maxlength="32" inputmode="tel"
+                     value="{{ form.phone.value|default:'' }}" autocomplete="tel"
+                     aria-describedby="phone-hint">
+            </div>
+            <div class="field-foot">
+              <span id="phone-hint" class="field-hint">{% t "contact.phone_hint" %}</span>
+            </div>
+            {% for e in form.phone.errors %}<span class="field-err">{{ e }}</span>{% endfor %}
+          </div>
+          <div class="field">
+            <label for="id_subject">{% t "contact.subject" %}</label>
+            <div class="control">
+              <svg aria-hidden="true"><use href="#i-pen"></use></svg>
+              <input type="text" name="subject" id="id_subject" maxlength="160" value="{{ form.subject.value|default:'' }}">
+            </div>
+          </div>
         </div>
 
         <div class="field">
           <label for="id_body">{% t "contact.message" %}</label>
-          <textarea name="body" id="id_body" rows="6" required maxlength="4000">{{ form.body.value|default:'' }}</textarea>
-          {% for e in form.body.errors %}<span class="err">{{ e }}</span>{% endfor %}
+          <div class="control">
+            <textarea name="body" id="id_body" rows="6" required maxlength="4000" data-count>{{ form.body.value|default:'' }}</textarea>
+          </div>
+          <div class="field-foot">
+            <span>{% for e in form.body.errors %}<span class="field-err">{{ e }}</span>{% endfor %}</span>
+            <span class="counter num" data-counter aria-hidden="true"></span>
+          </div>
         </div>
 
-        <button class="btn btn-primary" type="submit" style="justify-self:start">
-          {% t "contact.send" %}
-          <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
-        </button>
+        <div class="form-foot">
+          <button class="btn btn-primary btn-lg" type="submit" data-submit>
+            <span class="btn-label">{% t "contact.send" %}</span>
+            <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
       </form>
     </div>
   </div>

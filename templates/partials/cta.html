@@ -1,0 +1,20 @@
+{% load site_tags %}
+<section class="sec">
+  <div class="shell">
+    <div class="cta reveal" data-accent="peach">
+      <div class="cta-art" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="cta-copy">
+        <h2>{% t "home.cta_title" %}</h2>
+        <p>{% t "home.cta_body" %}</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="{% url 'contact' %}">
+          <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "home.contact_me" %}
+        </a>
+        <a class="btn btn-ghost btn-lg" href="{% url 'card' %}">
+          <svg aria-hidden="true"><use href="#i-qr"></use></svg>{% t "nav.card" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

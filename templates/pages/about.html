@@ -1,68 +1,116 @@
 {% extends "base.html" %}
-{% load site_tags %}
+{% load site_tags seo_tags %}
 
 {% block title %}{% t "about.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{{ profile|tr:"intro"|truncatechars:160 }}{% endblock %}
+{% block og_type %}profile{% endblock %}
+{% block og_title %}{% t "about.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block og_description %}{{ profile|tr:"intro"|truncatechars:200 }}{% endblock %}
+{% block head_extra %}{% ld_profile_page %}{% endblock %}
 
 {% block content %}
 <section class="page-head">
   <div class="shell">
     <span class="eyebrow">About</span>
-    <h1>{% t "about.title" %}</h1>
+    <h1 class="page-title">{% t "about.title" %}</h1>
   </div>
 </section>
 
-<section class="sec" style="padding-block-start:0">
-  <div class="shell narrow">
-    <div class="prose">{{ profile|md:"bio" }}</div>
+<section class="sec sec-flush">
+  <div class="shell about-grid">
+    <div class="about-main">
+      <div class="prose">{{ profile|md:"bio" }}</div>
+    </div>
+
+    {% comment %}The card a reader keeps in view while reading the long form: the face,
+       the facts and the two next steps.{% endcomment %}
+    <aside class="about-aside">
+      <div class="profile-card" data-spot>
+        <div class="profile-face">
+          {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="116" height="116">
+          {% else %}
+            <span>{{ profile.full_name_en|default:"MM"|initials }}</span>
+          {% endif %}
+        </div>
+        <h2 class="profile-name">{{ profile|tr:"full_name" }}</h2>
+        <p class="profile-role">{{ profile|tr:"headline" }}</p>
+        {% if profile.is_available and profile|tr:"availability" %}
+          <span class="pill" data-accent="peach"><span class="pill-dot live"></span>{{ profile|tr:"availability" }}</span>
+        {% endif %}
+
+        <dl class="facts" data-accent="sky">
+          {% if profile|tr:"location" %}
+            <div class="fact">
+              <span class="fact-ico" aria-hidden="true"><svg><use href="#i-pin"></use></svg></span>
+              <dt>{% t "facts.location" %}</dt><dd>{{ profile|tr:"location" }}</dd>
+            </div>
+          {% endif %}
+          {% if profile|tr:"languages" %}
+            <div class="fact">
+              <span class="fact-ico" aria-hidden="true"><svg><use href="#i-translate"></use></svg></span>
+              <dt>{% t "resume.languages" %}</dt><dd>{{ profile|tr:"languages" }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+
+        {% if profile.links %}
+          <div class="profile-links">
+            {% for link in profile.links %}
+              <a class="dock-btn" href="{{ link.href }}" {% if link.key != "email" and link.key != "phone" %}target="_blank" rel="noopener"{% endif %}
+                 aria-label="{% t 'channel.'|add:link.key %}" data-tip="{% t 'channel.'|add:link.key %}">
+                <svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="profile-actions">
+          <a class="btn btn-primary btn-block" data-accent="sky" href="{% url 'resume' %}">
+            <svg aria-hidden="true"><use href="#i-doc"></use></svg>{% t "nav.resume" %}
+          </a>
+          <a class="btn btn-ghost btn-block" data-accent="peach" href="{% url 'contact' %}">
+            <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "home.contact_me" %}
+          </a>
+        </div>
+      </div>
+    </aside>
   </div>
 </section>
 
 {% if work %}
-<section class="sec">
+<section class="sec sec-band" data-accent="sky">
   <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Experience</span><h2 class="sec-title">{% t "about.work" %}</h2></div></div>
-    <ul class="timeline">
+    <header class="sec-head reveal"><div><span class="eyebrow">Experience</span><h2 class="sec-title">{% t "about.work" %}</h2></div></header>
+    <ol class="timeline">
       {% for item in work %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}
-    </ul>
+    </ol>
   </div>
 </section>
 {% endif %}
 
 {% if education %}
-<section class="sec">
+<section class="sec" data-accent="lilac">
   <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Education</span><h2 class="sec-title">{% t "about.education" %}</h2></div></div>
-    <ul class="timeline">
+    <header class="sec-head reveal"><div><span class="eyebrow">Education</span><h2 class="sec-title">{% t "about.education" %}</h2></div></header>
+    <ol class="timeline">
       {% for item in education %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}
-    </ul>
+    </ol>
   </div>
 </section>
 {% endif %}
 
 {% if skill_groups %}
-<section class="sec sec-band">
+<section class="sec">
   <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Toolbox</span><h2 class="sec-title">{% t "home.skills" %}</h2></div></div>
-    <div class="skill-groups">
-      {% for group in skill_groups %}
-        <div class="skill-group reveal">
-          <h3>{{ group|tr:"name" }}</h3>
-          <ul class="skill-list">
-            {% for skill in group.skills.all %}<li{% if skill.is_primary %} class="is-primary"{% endif %}>{{ skill.name }}</li>{% endfor %}
-          </ul>
-        </div>
-      {% endfor %}
-    </div>
+    <header class="sec-head reveal">
+      <div><span class="eyebrow">Toolbox</span><h2 class="sec-title">{% t "home.skills" %}</h2></div>
+      <p class="legend"><svg aria-hidden="true"><use href="#i-star"></use></svg>{% t "skills.primary" %}</p>
+    </header>
+    {% include "partials/skill_groups.html" %}
   </div>
 </section>
 {% endif %}
 
-<section class="sec">
-  <div class="shell">
-    <div class="cta reveal">
-      <div><h2>{% t "home.cta_title" %}</h2><p>{% t "home.cta_body" %}</p></div>
-      <a class="btn btn-primary" href="{% url 'contact' %}">{% t "home.contact_me" %}</a>
-    </div>
-  </div>
-</section>
+{% include "partials/cta.html" %}
 {% endblock %}

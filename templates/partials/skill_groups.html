@@ -1,0 +1,27 @@
+{% load site_tags %}
+{% comment %}
+The toolbox, shared by the home and about pages. The group icons cycle in the
+order the groups are seeded (backend, Python, data, architecture); if the
+groups change they are still just decoration. A star marks `is_primary` —
+the only emphasis a skill has, since there is deliberately no percentage.
+{% endcomment %}
+<div class="skill-groups rhythm">
+  {% for group in skill_groups %}
+    <div class="skill-group reveal" data-spot>
+      <header class="sg-head">
+        <span class="sg-ico" aria-hidden="true"><svg><use href="#i-{% cycle 'code' 'terminal' 'database' 'layers' %}"></use></svg></span>
+        <h3>{{ group|tr:"name" }}</h3>
+        <span class="sg-count num">{{ group.skills.all|length|fa_num }}</span>
+      </header>
+      <ul class="skill-list">
+        {% for skill in group.skills.all %}
+          {% if skill.is_primary %}
+            <li class="is-primary" data-tip="{% t 'skills.primary' %}"><svg aria-hidden="true"><use href="#i-star"></use></svg>{{ skill.name }}</li>
+          {% else %}
+            <li>{{ skill.name }}</li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endfor %}
+</div>

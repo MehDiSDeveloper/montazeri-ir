@@ -3,61 +3,175 @@
 
 {% block content %}
 
+{% comment %}
+The home page, in the order a reviewer reads a candidate: who (hero), the
+facts they screen on (at a glance), what they built (work), where they did it
+(career), with what (toolbox), then how to reach them.
+{% endcomment %}
+
 {# ── hero ──────────────────────────────────────────────────────────────── #}
 <section class="hero">
+  <div class="hero-aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
   <div class="shell hero-grid">
-    <div>
+    <div class="hero-copy">
       {% if profile.is_available and profile|tr:"availability" %}
-        <span class="pill"><span class="pill-dot live"></span>{{ profile|tr:"availability" }}</span>
+        <span class="pill" data-accent="peach"><span class="pill-dot live"></span>{{ profile|tr:"availability" }}</span>
       {% endif %}
 
-      <h1>{{ profile|tr:"full_name" }}</h1>
+      <h1 class="hero-name"><span class="scribble">{{ profile|tr:"full_name" }}</span></h1>
       <p class="hero-role">{{ profile|tr:"headline" }}</p>
       <p class="hero-intro">{{ profile|tr:"intro" }}</p>
 
       <div class="hero-cta">
-        <a class="btn btn-primary" href="{% url 'project_list' %}">
+        <a class="btn btn-primary btn-lg" href="{% url 'project_list' %}">
           {% t "home.view_work" %}
-          <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+          <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
         </a>
-        <a class="btn btn-ghost" href="{% url 'contact' %}">{% t "home.contact_me" %}</a>
+        <a class="btn btn-soft btn-lg" data-accent="peach" href="{% url 'contact' %}">
+          <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "home.contact_me" %}
+        </a>
+        <a class="btn btn-ghost btn-lg" data-accent="sky" href="{% url 'resume' %}">
+          <svg aria-hidden="true"><use href="#i-doc"></use></svg>{% t "nav.resume" %}
+        </a>
         {% if profile.resume_file %}
-          <a class="btn btn-quiet" href="{{ profile.resume_file.url }}" download>
+          <a class="icon-btn" href="{{ profile.resume_file.url }}" download aria-label="{% t 'home.download_resume' %}" data-tip="{% t 'home.download_resume' %}">
             <svg aria-hidden="true"><use href="#i-download"></use></svg>
-            {% t "home.download_resume" %}
           </a>
         {% endif %}
       </div>
 
-      <div class="hero-meta">
+      <ul class="hero-meta">
         {% if profile|tr:"location" %}
-          <span><svg aria-hidden="true"><use href="#i-pin"></use></svg>{{ profile|tr:"location" }}</span>
+          <li><svg aria-hidden="true"><use href="#i-pin"></use></svg>{{ profile|tr:"location" }}</li>
         {% endif %}
         {% if profile.email %}
-          <span><svg aria-hidden="true"><use href="#i-mail"></use></svg><span class="mono">{{ profile.email }}</span></span>
+          <li>
+            <svg aria-hidden="true"><use href="#i-mail"></use></svg>
+            <a class="mono" href="mailto:{{ profile.email }}">{{ profile.email }}</a>
+            <button class="mini-btn" type="button" data-copy="{{ profile.email }}" data-copied-label="{% t 'contact.copied' %}"
+                    aria-label="{% t 'contact.copy' %}" data-tip="{% t 'contact.copy' %}">
+              <svg aria-hidden="true"><use href="#i-copy"></use></svg>
+            </button>
+          </li>
         {% endif %}
-      </div>
+      </ul>
     </div>
 
-    <div class="portrait">
-      <div class="portrait-field">
-        {% if profile.avatar %}
-          <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="320" height="320">
-        {% else %}
-          <span class="portrait-initials">{{ profile.full_name_en|default:"MM"|initials }}</span>
+    <div class="hero-visual">
+      <div class="portrait" data-tilt="5">
+        <div class="portrait-ring" aria-hidden="true"></div>
+        <div class="portrait-field">
+          {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="340" height="340" fetchpriority="high">
+          {% else %}
+            <span class="portrait-initials">{{ profile.full_name_en|default:"MM"|initials }}</span>
+          {% endif %}
+        </div>
+        {% for skill in hero_skills %}
+          <span class="float-chip" data-accent="{% cycle 'mint' 'sky' 'peach' 'lilac' %}" data-tip="{{ skill.group|tr:'name' }}">
+            <span class="dot" aria-hidden="true"><svg><use href="#i-star"></use></svg></span><span class="mono">{{ skill.name }}</span>
+          </span>
+        {% endfor %}
+        {% if profile.links %}
+          <div class="portrait-dock">
+            {% for link in profile.links %}
+              <a class="dock-btn" href="{{ link.href }}" {% if link.key != "email" and link.key != "phone" %}target="_blank" rel="noopener"{% endif %}
+                 aria-label="{% t 'channel.'|add:link.key %}" data-tip="{% t 'channel.'|add:link.key %}">
+                <svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg>
+              </a>
+            {% endfor %}
+          </div>
         {% endif %}
       </div>
     </div>
   </div>
+
+  {% if primary_skills %}
+    <div class="marquee" role="group" aria-label="{% t 'facts.core_stack' %}">
+      <div class="marquee-track">
+        {% for copy in "1234" %}
+          <ul class="marquee-list rhythm"{% if not forloop.first %} aria-hidden="true"{% endif %}>
+            {% for skill in primary_skills %}<li>{{ skill.name }}</li>{% endfor %}
+          </ul>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 </section>
 
-{# ── this week ─────────────────────────────────────────────────────────── #}
-{% if profile|tr:"now" %}
-<section class="sec" style="padding-block-start:0" data-accent="clay">
+{# ── at a glance: the four things a recruiter screens on ───────────────── #}
+{% with latest=experiences|first %}
+<section class="glance" aria-label="{% t 'home.at_a_glance' %}">
   <div class="shell">
-    <div class="now-strip reveal">
-      <span class="label">{% t "home.now" %}</span>
+    <ul class="glance-grid rhythm">
+      {% if profile|tr:"location" %}
+        <li class="glance-tile reveal" data-spot>
+          <span class="glance-ico" aria-hidden="true"><svg><use href="#i-pin"></use></svg></span>
+          <span class="glance-label">{% t "facts.location" %}</span>
+          <span class="glance-value">{{ profile|tr:"location" }}</span>
+        </li>
+      {% endif %}
+      {% if latest %}
+        <li class="glance-tile reveal" data-spot>
+          <span class="glance-ico" aria-hidden="true"><svg><use href="#i-briefcase"></use></svg></span>
+          <span class="glance-label">{% t "facts.latest_role" %}</span>
+          <span class="glance-value">{{ latest|tr:"role" }} · {{ latest|tr:"org" }}</span>
+        </li>
+      {% endif %}
+      {% if profile|tr:"languages" %}
+        <li class="glance-tile reveal" data-spot>
+          <span class="glance-ico" aria-hidden="true"><svg><use href="#i-translate"></use></svg></span>
+          <span class="glance-label">{% t "resume.languages" %}</span>
+          <span class="glance-value">{{ profile|tr:"languages" }}</span>
+        </li>
+      {% endif %}
+      {% if profile.is_available and profile|tr:"availability" %}
+        <li class="glance-tile reveal" data-spot>
+          <span class="glance-ico" aria-hidden="true"><svg><use href="#i-sparkle"></use></svg></span>
+          <span class="glance-label">{% t "facts.availability" %}</span>
+          <span class="glance-value">{{ profile|tr:"availability" }}</span>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+</section>
+{% endwith %}
+
+{# ── right now ─────────────────────────────────────────────────────────── #}
+{% if profile|tr:"now" %}
+<section class="sec-tight" data-accent="peach">
+  <div class="shell">
+    <div class="now reveal">
+      <span class="now-badge"><span class="pill-dot live"></span>{% t "home.now" %}</span>
       <p>{{ profile|tr:"now" }}</p>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% comment %}Project work comes before the portfolio because it is what pays: a
+   client should see what they get before they have to scroll. As a peach band
+   it also keeps the band / plain rhythm down the page.{% endcomment %}
+{% if has_offer %}
+<section class="sec sec-band" data-accent="peach" id="services">
+  <div class="shell">
+    <header class="sec-head reveal">
+      <div>
+        <span class="eyebrow">01 — Services</span>
+        <h2 class="sec-title">{{ profile|tr:"offer_title" }}</h2>
+        {% if profile|tr:"offer_lede" %}<p class="sec-lede">{{ profile|tr:"offer_lede" }}</p>{% endif %}
+      </div>
+      <a class="more" href="{% url 'services' %}">
+        {% t "services.more" %}
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+      </a>
+    </header>
+    {% include "partials/offer_points.html" %}
+    <div class="offer-actions reveal">
+      <a class="btn btn-primary btn-lg" href="{% url 'contact' %}?topic=project">
+        <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "services.start" %}
+      </a>
     </div>
   </div>
 </section>
@@ -65,48 +179,22 @@
 
 {# ── selected work ─────────────────────────────────────────────────────── #}
 {% if featured_projects %}
-<section class="sec">
+<section class="sec" id="work">
   <div class="shell">
-    <div class="sec-head">
+    <header class="sec-head reveal">
       <div>
-        <span class="eyebrow">01 — Work</span>
+        <span class="eyebrow">02 — Work</span>
         <h2 class="sec-title">{% t "home.selected_work" %}</h2>
       </div>
       <a class="more" href="{% url 'project_list' %}">
         {% t "home.all_projects" %}
-        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
       </a>
-    </div>
+    </header>
 
-    <div class="grid-projects">
+    <div class="cases rhythm">
       {% for project in featured_projects %}
-        {% include "partials/project_card.html" with project=project index=forloop.counter %}
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-{# ── skills ────────────────────────────────────────────────────────────── #}
-{% if skill_groups %}
-<section class="sec sec-band">
-  <div class="shell">
-    <div class="sec-head">
-      <div>
-        <span class="eyebrow">02 — Toolbox</span>
-        <h2 class="sec-title">{% t "home.skills" %}</h2>
-      </div>
-    </div>
-    <div class="skill-groups">
-      {% for group in skill_groups %}
-        <div class="skill-group reveal">
-          <h3>{{ group|tr:"name" }}</h3>
-          <ul class="skill-list">
-            {% for skill in group.skills.all %}
-              <li{% if skill.is_primary %} class="is-primary"{% endif %}>{{ skill.name }}</li>
-            {% endfor %}
-          </ul>
-        </div>
+        {% include "partials/case_card.html" with project=project index=forloop.counter %}
       {% endfor %}
     </div>
   </div>
@@ -115,23 +203,39 @@
 
 {# ── career ────────────────────────────────────────────────────────────── #}
 {% if experiences %}
-<section class="sec">
+<section class="sec sec-band" data-accent="sky" id="career">
   <div class="shell">
-    <div class="sec-head">
+    <header class="sec-head reveal">
       <div>
         <span class="eyebrow">03 — Path</span>
         <h2 class="sec-title">{% t "home.experience" %}</h2>
       </div>
       <a class="more" href="{% url 'resume' %}">
         {% t "home.full_resume" %}
-        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
       </a>
-    </div>
-    <ul class="timeline">
+    </header>
+    <ol class="timeline">
       {% for item in experiences %}
         {% include "partials/timeline_item.html" with item=item %}
       {% endfor %}
-    </ul>
+    </ol>
+  </div>
+</section>
+{% endif %}
+
+{# ── skills ────────────────────────────────────────────────────────────── #}
+{% if skill_groups %}
+<section class="sec" id="skills">
+  <div class="shell">
+    <header class="sec-head reveal">
+      <div>
+        <span class="eyebrow">04 — Toolbox</span>
+        <h2 class="sec-title">{% t "home.skills" %}</h2>
+      </div>
+      <p class="legend"><svg aria-hidden="true"><use href="#i-star"></use></svg>{% t "skills.primary" %}</p>
+    </header>
+    {% include "partials/skill_groups.html" %}
   </div>
 </section>
 {% endif %}
@@ -140,16 +244,16 @@
 {% if posts %}
 <section class="sec sec-band" data-accent="lilac">
   <div class="shell">
-    <div class="sec-head">
+    <header class="sec-head reveal">
       <div>
-        <span class="eyebrow">04 — Writing</span>
+        <span class="eyebrow">05 — Writing</span>
         <h2 class="sec-title">{% t "home.writing" %}</h2>
       </div>
       <a class="more" href="{% url 'post_list' %}">
         {% t "home.all_writing" %}
-        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
+        <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
       </a>
-    </div>
+    </header>
     <div class="post-list">
       {% for post in posts %}
         {% include "partials/post_row.html" with post=post %}
@@ -159,20 +263,6 @@
 </section>
 {% endif %}
 
-{# ── contact band ──────────────────────────────────────────────────────── #}
-<section class="sec">
-  <div class="shell">
-    <div class="cta reveal">
-      <div>
-        <h2>{% t "home.cta_title" %}</h2>
-        <p>{% t "home.cta_body" %}</p>
-      </div>
-      <div class="hero-cta" style="margin-top:0">
-        <a class="btn btn-primary" href="{% url 'contact' %}">{% t "home.contact_me" %}</a>
-        <a class="btn btn-ghost" href="{% url 'card' %}">{% t "nav.card" %}</a>
-      </div>
-    </div>
-  </div>
-</section>
+{% include "partials/cta.html" %}
 
 {% endblock %}

@@ -1,11 +1,22 @@
 {% extends "base.html" %}
 {% load site_tags %}
 {% block title %}{{ title }}{% endblock %}
+{% block robots %}noindex, follow{% endblock %}
 {% block content %}
-<div class="shell err">
-  <div class="err-code">{{ code }}</div>
-  <h1>{{ title }}</h1>
-  <p>{{ body }}</p>
-  <a class="btn btn-primary" href="{% url 'home' %}" style="margin-top:8px">{% t "err.home" %}</a>
-</div>
+<section class="err-page">
+  <div class="hero-aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <div class="shell err-wrap">
+    <div class="err-code">{{ code }}</div>
+    <h1>{{ title }}</h1>
+    <p>{{ body }}</p>
+    <div class="err-actions">
+      <a class="btn btn-primary btn-lg" href="{% url 'home' %}">
+        <svg aria-hidden="true"><use href="#i-home"></use></svg>{% t "err.home" %}
+      </a>
+      <button class="btn btn-ghost btn-lg" type="button" data-cmdk-open>
+        <svg aria-hidden="true"><use href="#i-search"></use></svg>{% t "cmd.open" %}
+      </button>
+    </div>
+  </div>
+</section>
 {% endblock %}

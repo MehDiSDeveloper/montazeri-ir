@@ -24,8 +24,18 @@ Education is deliberately absent. There is no completed degree, and an empty
 section renders nothing at all, which reads better than an unfinished entry.
 
 Nothing private is here: no age, no marital status, no military status, no
-visa arithmetic. The one legal line that *is* public — the §19c(2) residence
-route — is there because it answers a German recruiter's first objection.
+visa arithmetic. Relocation is retired too — no "moving to Germany", no
+§19c(2) residence route, no "open to roles in Germany". The site is read by
+recruiters in Iran as well, and a stated move abroad reads to them as a hire
+who is about to leave. Location is Tehran.
+
+Remote is retired as well: Mahdi works on-site, hybrid, or by the project —
+never fully remote. The copy says what he does rather than what he does not,
+so "remote" simply no longer appears anywhere a visitor reads.
+
+Project work is a line of income, so it has its own offer (`offer_*` on the
+profile, the `Service` cards, /services/): end to end, a quick start with fast
+delivery, and a price agreed per project.
 """
 
 from datetime import date
@@ -38,6 +48,7 @@ from apps.content.models import (
     Post,
     Profile,
     Project,
+    Service,
     Skill,
     SkillGroup,
     Tag,
@@ -62,6 +73,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("wiped projects, skills, tags and roles"))
 
         self._profile()
+        self._services()
         tags = self._tags()
         self._skills()
         self._projects(tags)
@@ -114,15 +126,15 @@ class Command(BaseCommand):
         p.bio_en = _BIO_EN
         p.bio_de = _BIO_DE
 
-        p.location_fa = "تهران، ایران · در مسیر مهاجرت به آلمان"
-        p.location_en = "Tehran, Iran · relocating to Germany"
-        p.location_de = "Teheran, Iran · Umzug nach Deutschland geplant"
+        p.location_fa = "تهران، ایران"
+        p.location_en = "Tehran, Iran"
+        p.location_de = "Teheran, Iran"
 
-        p.now_fa = "عمیق‌تر کردن کار با پایتون و FastAPI، و آماده‌سازی نقل مکان به آلمان."
-        p.now_en = "Deepening the Python and FastAPI side of my work, and preparing a move to Germany."
+        p.now_fa = "عمیق‌تر کردن کار با پایتون و FastAPI، و ساختن ابزارهای کوچک و قابل‌اتکا با آن."
+        p.now_en = "Deepening the Python and FastAPI side of my work, and shipping small, dependable tools with it."
         p.now_de = (
-            "Ich vertiefe meine Arbeit mit Python und FastAPI und bereite den Umzug "
-            "nach Deutschland vor."
+            "Ich vertiefe meine Arbeit mit Python und FastAPI und baue damit kleine, "
+            "verlässliche Werkzeuge."
         )
 
         # Stated plainly, including the A1. A German recruiter finds out in the
@@ -132,9 +144,48 @@ class Command(BaseCommand):
         p.languages_en = "Persian native · English C1 · German A1 (learning)"
         p.languages_de = "Persisch Muttersprache · Englisch C1 · Deutsch A1 (im Aufbau)"
 
-        p.availability_fa = "آماده‌ی همکاری در آلمان"
-        p.availability_en = "Open to backend roles in Germany"
-        p.availability_de = "Offen für Backend-Rollen in Deutschland"
+        p.availability_fa = "آماده‌ی همکاری — حضوری، هیبریدی یا پروژه‌ای"
+        p.availability_en = "Open to work — on-site, hybrid or project-based"
+        p.availability_de = "Offen für Zusammenarbeit — vor Ort, hybrid oder projektbasiert"
+
+        # ── search results: the home page title and the two lines under it ──
+        p.seo_title_fa = "مهدی منتظری | برنامه‌نویس بک‌اند دات‌نت و پایتون"
+        p.seo_title_en = "Mahdi Montazeri — Backend Engineer, .NET & Python"
+        p.seo_title_de = "Mahdi Montazeri — Backend-Entwickler, .NET & Python"
+        p.seo_description_fa = (
+            "مهدی منتظری، مهندس بک‌اند در تهران — دات‌نت، پایتون و SQL Server در مقیاس ۲۵ میلیون "
+            "کاربر. انجام پروژه‌ی نرم‌افزاری از صفر تا صد؛ حضوری، هیبریدی یا پروژه‌ای."
+        )
+        p.seo_description_en = (
+            "Mahdi Montazeri, backend engineer in Tehran — .NET, Python and SQL Server at "
+            "25M-customer scale. Software projects end to end: on-site, hybrid or by contract."
+        )
+        p.seo_description_de = (
+            "Mahdi Montazeri, Backend-Entwickler in Teheran: .NET, Python, SQL Server bei 25 Mio. "
+            "Kunden. Softwareprojekte von A bis Z — vor Ort, hybrid oder projektbasiert."
+        )
+
+        # ── project work ──
+        p.offer_title_fa = "پروژه‌ی نرم‌افزاری شما، از صفر تا صد"
+        p.offer_title_en = "Your software project, from first idea to launch"
+        p.offer_title_de = "Ihr Softwareprojekt — von der Idee bis zum Livegang"
+        p.offer_lede_fa = (
+            "از گفت‌وگوی اول و تحلیل نیاز تا طراحی، توسعه، استقرار و تحویل — با یک مسئولِ "
+            "پاسخ‌گو، شروع بی‌معطلی، تحویل سریع و هزینه‌ای که متناسب با پروژه‌ی شما توافق می‌شود."
+        )
+        p.offer_lede_en = (
+            "From the first conversation and the requirements through design, build, deployment "
+            "and hand-over — one accountable engineer, a quick start, fast delivery, and a price "
+            "agreed around your project."
+        )
+        p.offer_lede_de = (
+            "Vom ersten Gespräch über Anforderungen, Entwurf, Umsetzung und Deployment bis zur "
+            "Übergabe — ein verantwortlicher Entwickler, kurzfristiger Start, zügige Lieferung und "
+            "ein Preis, der zu Ihrem Projekt passt."
+        )
+        p.offer_body_fa = _OFFER_FA
+        p.offer_body_en = _OFFER_EN
+        p.offer_body_de = _OFFER_DE
 
         p.email = "mahdii.montazeri@gmail.com"
         p.github = "MehDiSDeveloper"
@@ -143,6 +194,44 @@ class Command(BaseCommand):
         p.is_available = True
 
         p.save()
+
+    # ── services: the four promises on /services/ ──────────────────────────
+    def _services(self):
+        rows = [
+            (
+                "layers",
+                ("از صفر تا صد", "تحلیل نیاز، طراحی معماری و پایگاه داده، توسعه‌ی بک‌اند و API، تست و استقرار — یک نفر مسئول کل مسیر است، نه زنجیره‌ای از پیمانکارها."),
+                ("End to end", "Requirements, architecture and database design, backend and API, testing and deployment — one person accountable for the whole path, not a chain of contractors."),
+                ("Von A bis Z", "Anforderungen, Architektur und Datenbankdesign, Backend und API, Tests und Deployment — eine verantwortliche Person statt einer Kette von Dienstleistern."),
+            ),
+            (
+                "clock",
+                ("شروع فوری، تحویل سریع", "بدون دوره‌ی انتظار شروع می‌کنم و کار را در گام‌های کوتاه تحویل می‌دهم؛ نسخه‌ی قابل‌استفاده زود به دستتان می‌رسد، نه بعد از ماه‌ها."),
+                ("Quick start, fast delivery", "I start without a waiting period and deliver in short steps, so you have something usable early rather than after months."),
+                ("Schneller Start, zügige Lieferung", "Start ohne Wartezeit, Lieferung in kurzen Schritten — Sie haben früh etwas Nutzbares in der Hand, nicht erst nach Monaten."),
+            ),
+            (
+                "target",
+                ("هزینه‌ی توافقی", "قیمت بر اساس دامنه و زمان‌بندی پروژه تعیین می‌شود و پیش از شروع، شفاف توافق می‌کنیم — بدون هزینه‌ی پنهان."),
+                ("Price by agreement", "The price follows the scope and the timeline, and we agree it clearly before work starts — no hidden costs."),
+                ("Preis nach Vereinbarung", "Der Preis richtet sich nach Umfang und Zeitplan und wird vor Beginn transparent vereinbart — ohne versteckte Kosten."),
+            ),
+            (
+                "briefcase",
+                ("حضوری، هیبریدی یا پروژه‌ای", "در تهران به‌صورت حضوری یا هیبریدی کنار تیم شما هستم، یا پروژه را به‌صورت قراردادی و با تحویل مشخص انجام می‌دهم."),
+                ("On-site, hybrid or by project", "In Tehran I work on-site or hybrid alongside your team, or take the work as a contract with a defined delivery."),
+                ("Vor Ort, hybrid oder projektbasiert", "In Teheran vor Ort oder hybrid mit Ihrem Team — oder als Auftrag mit klar definierter Lieferung."),
+            ),
+        ]
+        Service.objects.all().delete()
+        for order, (icon, fa, en, de) in enumerate(rows):
+            Service.objects.create(
+                icon=icon,
+                order=order,
+                title_fa=fa[0], body_fa=fa[1],
+                title_en=en[0], body_en=en[1],
+                title_de=de[0], body_de=de[1],
+            )
 
     # ── tags ──────────────────────────────────────────────────────────────
     def _tags(self) -> dict[str, Tag]:
@@ -200,6 +289,7 @@ class Command(BaseCommand):
                 ("داده و کارایی", "Data & performance", "Daten & Performance"),
                 [
                     ("SQL Server", True),
+                    ("PostgreSQL", True),
                     ("T-SQL", False),
                     ("Stored procedures", False),
                     ("Query tuning", False),
@@ -611,9 +701,9 @@ class Command(BaseCommand):
                 role_fa="توسعه‌دهنده‌ی بک‌اند (فریلنس)",
                 role_en="Backend Developer (freelance)",
                 role_de="Backend-Entwickler (freiberuflich)",
-                location_fa="از راه دور",
-                location_en="Remote",
-                location_de="Remote",
+                location_fa="پروژه‌ای",
+                location_en="Project-based",
+                location_de="Projektbasiert",
                 description_fa=_E_FREELANCE_FA,
                 description_en=_E_FREELANCE_EN,
                 description_de=_E_FREELANCE_DE,
@@ -674,6 +764,73 @@ class Command(BaseCommand):
 # ── long copy ──────────────────────────────────────────────────────────────
 # Kept at the bottom so the command reads as structure, not as prose.
 
+# ── the services page ──────────────────────────────────────────────────────
+_OFFER_EN = """\
+### What I build
+
+- **Web systems and admin panels** — from internal tools and CRMs to customer
+  loyalty platforms.
+- **Backends and APIs** for websites and mobile apps, in .NET or Python (FastAPI).
+- **Performance and database work** — slow queries, ageing schemas, SQL Server
+  and PostgreSQL at volume.
+- **Migration and modernisation** from .NET Framework to modern .NET, without
+  stopping the product.
+- **Integrations** with outside services, webhooks, and AI through LLM APIs.
+
+### How a project runs
+
+1. **A first conversation** — what you need, the constraints and the timeline.
+2. **A proposal and an agreement** — scope, delivery steps and price, settled
+   before work starts.
+3. **Built in short steps** — each one delivered where you can see and test it.
+4. **Deployment and hand-over** — running on your server, with the source code
+   and documentation.
+"""
+
+_OFFER_DE = """\
+### Was ich baue
+
+- **Websysteme und Admin-Oberflächen** — von internen Werkzeugen und CRMs bis zu
+  Kundenbindungsplattformen.
+- **Backends und APIs** für Websites und mobile Apps, mit .NET oder Python (FastAPI).
+- **Performance- und Datenbankarbeit** — langsame Abfragen, gewachsene Schemata,
+  SQL Server und PostgreSQL bei großen Datenmengen.
+- **Migration und Modernisierung** von .NET Framework auf aktuelles .NET, ohne
+  das Produkt anzuhalten.
+- **Integrationen** mit externen Diensten, Webhooks und KI über LLM-APIs.
+
+### So läuft ein Projekt ab
+
+1. **Ein erstes Gespräch** — Bedarf, Rahmenbedingungen und Zeitplan.
+2. **Angebot und Vereinbarung** — Umfang, Lieferschritte und Preis stehen vor
+   Beginn fest.
+3. **Umsetzung in kurzen Schritten** — jeder Schritt dort geliefert, wo Sie ihn
+   sehen und testen können.
+4. **Deployment und Übergabe** — lauffähig auf Ihrem Server, mit Quellcode und
+   Dokumentation.
+"""
+
+_OFFER_FA = """\
+### چه چیزهایی می‌سازم
+
+- **سامانه‌ها و پنل‌های تحت وب** — از ابزارهای داخلی و CRM تا پلتفرم باشگاه
+  مشتریان.
+- **بک‌اند و API** برای وب‌سایت و اپلیکیشن موبایل، با دات‌نت یا پایتون (FastAPI).
+- **بهینه‌سازی کارایی و پایگاه داده** — کوئری‌های کند، اسکیمای فرسوده، SQL Server
+  و PostgreSQL در حجم بالا.
+- **مهاجرت و نوسازی** از .NET Framework به نسخه‌های جدید دات‌نت، بدون متوقف‌کردن
+  محصول.
+- **یکپارچه‌سازی** با سرویس‌های بیرونی، وبهوک‌ها و هوش مصنوعی از طریق LLM API.
+
+### یک پروژه چطور پیش می‌رود
+
+1. **گفت‌وگوی اول** — نیاز، محدودیت‌ها و زمان‌بندی را روشن می‌کنیم.
+2. **پیشنهاد و توافق** — دامنه‌ی کار، مراحل تحویل و هزینه پیش از شروع مشخص می‌شود.
+3. **ساخت در گام‌های کوتاه** — هر مرحله جایی تحویل می‌شود که بتوانید ببینید و
+   امتحانش کنید.
+4. **استقرار و تحویل** — راه‌اندازی روی سرور شما، همراه با سورس‌کد و مستندات.
+"""
+
 _BIO_EN = """\
 I am a backend engineer. For the last two and a half years I have worked on a
 customer loyalty and CRM platform in Tehran holding roughly 25 million unique
@@ -712,11 +869,9 @@ handling and the habit of owning a problem end to end come from.
 
 ### Practicalities
 
-I am in Tehran and moving to Germany. English is C1; German is A1 and improving
-weekly. As an IT specialist I am eligible for a German residence permit under
-§19c(2) AufenthG together with §6 BeschV, which does not require a recognised
-degree or a recognition procedure, and I can support an accelerated procedure
-under §81a. I have no notice period.
+I am based in Tehran and work on-site, hybrid or by the project — and a project
+I take on, I take from the first requirement to delivery. English is C1, and I
+work comfortably in English-speaking teams. I have no notice period.
 """
 
 _BIO_DE = """\
@@ -759,12 +914,10 @@ verantworten.
 
 ### Praktisches
 
-Ich lebe in Teheran und ziehe nach Deutschland. Englisch C1; Deutsch A1 und
-wöchentlich besser — Arbeitssprache wäre zunächst Englisch. Als IT-Fachkraft
-bin ich nach §19c Abs. 2 AufenthG i. V. m. §6 BeschV aufenthaltsberechtigt;
-ein anerkannter Abschluss oder ein Anerkennungsverfahren ist dafür nicht
-erforderlich. Ein beschleunigtes Fachkräfteverfahren nach §81a unterstütze ich
-gern. Ich habe keine Kündigungsfrist.
+Ich lebe in Teheran und arbeite vor Ort, hybrid oder projektbasiert — und ein
+Projekt übernehme ich von der ersten Anforderung bis zur Übergabe. Englisch C1;
+Deutsch A1 und im Aufbau — Arbeitssprache wäre zunächst Englisch. Ich habe
+keine Kündigungsfrist.
 """
 
 _BIO_FA = """\
@@ -805,11 +958,10 @@ SQLAlchemy، pytest، asyncio و مقدار قابل توجهی یکپارچه�
 
 ### نکات عملی
 
-ساکن تهرانم و در مسیر مهاجرت به آلمان. انگلیسی در سطح C1؛ آلمانی A1 و هفته به
-هفته بهتر. به‌عنوان متخصص IT بر اساس §19c(2) AufenthG به همراه §6 BeschV واجد
-شرایط اقامت کاری در آلمان هستم — بدون نیاز به مدرک تأییدشده یا فرایند ارزیابی
-مدرک — و از فرایند تسریع‌شده‌ی §81a پشتیبانی می‌کنم. دوره‌ی اطلاع قبلی برای ترک
-کار ندارم.
+ساکن تهرانم و به‌صورت حضوری، هیبریدی یا پروژه‌ای همکاری می‌کنم؛ و پروژه‌ای را
+که به عهده می‌گیرم، از تحلیل نیاز تا تحویل پیش می‌برم. انگلیسی‌ام در سطح C1 است
+و در تیم‌های انگلیسی‌زبان راحت کار می‌کنم. امکان شروع همکاری بدون دوره‌ی انتظار
+را دارم.
 """
 
 # ── project 1: the loyalty platform ────────────────────────────────────────

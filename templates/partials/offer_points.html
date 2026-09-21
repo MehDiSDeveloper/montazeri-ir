@@ -1,0 +1,12 @@
+{% load site_tags %}
+{% comment %}What a client gets — one card per Service row, shared by the home band
+   and /services/. The row takes turns through the four hues via .rhythm.{% endcomment %}
+<ul class="offer-grid rhythm">
+  {% for service in services %}
+    <li class="offer-card reveal" data-spot>
+      <span class="offer-ico" aria-hidden="true"><svg><use href="#i-{{ service.icon }}"></use></svg></span>
+      <h3>{{ service|tr:"title" }}</h3>
+      <p>{{ service|tr:"body" }}</p>
+    </li>
+  {% endfor %}
+</ul>

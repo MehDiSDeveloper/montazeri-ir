@@ -1,0 +1,42 @@
+{% load site_tags %}
+{% comment %}
+The wide "case study" row: the home page's selected work and the next-project
+link. It shows the outcome, because the result is what a reviewer scans a
+project for first. Covers alternate sides row by row through .cases.
+{% endcomment %}
+<a class="case reveal" href="{{ project.get_absolute_url }}" data-spot>
+  <div class="case-cover">
+    {% if project.cover %}
+      <img src="{{ project.cover.url }}" alt="" loading="lazy" width="560" height="400">
+    {% else %}
+      <span class="cover-art" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="cover-index" aria-hidden="true">{{ index|stringformat:"02d" }}</span>
+    {% endif %}
+    {% if project.year %}
+      <span class="cover-year num"><svg width="12" height="12" aria-hidden="true"><use href="#i-calendar"></use></svg>{{ project.year|fa_num }}</span>
+    {% endif %}
+  </div>
+
+  <div class="case-body">
+    {% if project.tags.all %}
+      <div class="case-tags">{% for tag in project.tags.all %}<span class="tag">{{ tag|tr:"name" }}</span>{% endfor %}</div>
+    {% endif %}
+    <h3 class="case-title">{{ project|tr:"title" }}</h3>
+    <p class="case-sum">{{ project|tr:"summary" }}</p>
+    {% if project|tr:"outcome" %}
+      <p class="case-outcome">
+        <svg aria-hidden="true"><use href="#i-target"></use></svg>
+        <span><b>{% t "projects.outcome" %}</b>{{ project|tr:"outcome" }}</span>
+      </p>
+    {% endif %}
+    <div class="case-foot">
+      {% if project.stack_list %}
+        <div class="stack">
+          {% for item in project.stack_list|slice:":5" %}<i>{{ item }}</i>{% endfor %}
+          {% if project.stack_list|length > 5 %}<i class="more-n" data-tip="{{ project.stack_list|slice:'5:'|join:', ' }}">+{{ project.stack_list|length|add:"-5" }}</i>{% endif %}
+        </div>
+      {% endif %}
+      <span class="case-go">{% t "projects.read_case" %}<svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg></span>
+    </div>
+  </div>
+</a>

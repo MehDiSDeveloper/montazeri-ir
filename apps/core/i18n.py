@@ -29,7 +29,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "nav.writing": {"fa": "نوشته‌ها", "en": "Writing", "de": "Blog"},
     "nav.about": {"fa": "درباره", "en": "About", "de": "Über mich"},
     "nav.contact": {"fa": "تماس", "en": "Contact", "de": "Kontakt"},
-    "nav.resume": {"fa": "رزومه", "en": "Résumé", "de": "Lebenslauf"},
+    "nav.resume": {"fa": "رزومه", "en": "Resume", "de": "Lebenslauf"},
     "nav.card": {"fa": "کارت", "en": "Card", "de": "Karte"},
     "nav.menu": {"fa": "منو", "en": "Menu", "de": "Menü"},
     "nav.close": {"fa": "بستن", "en": "Close", "de": "Schließen"},
@@ -55,9 +55,21 @@ STRINGS: dict[str, dict[str, str]] = {
     "home.all_writing": {"fa": "همهٔ نوشته‌ها", "en": "All posts", "de": "Alle Beiträge"},
     "home.cta_title": {"fa": "پروژه‌ای در ذهن دارید؟", "en": "Have something in mind?", "de": "Sie haben eine Idee?"},
     "home.cta_body": {
-        "fa": "برای همکاری، مشاوره یا فقط یک گفت‌وگوی فنی، پیام بدهید. معمولاً همان روز جواب می‌دهم.",
-        "en": "For work, advice, or just a technical conversation. I usually reply the same day.",
-        "de": "Für Projekte, Beratung oder einfach ein Fachgespräch. Ich antworte meist am selben Tag.",
+        "fa": "برای سپردن یک پروژه از صفر تا صد، همکاری حضوری یا هیبریدی، یا فقط یک گفت‌وگوی فنی، پیام بدهید. معمولاً همان روز جواب می‌دهم.",
+        "en": "For a project taken end to end, an on-site or hybrid role, or just a technical conversation. I usually reply the same day.",
+        "de": "Für ein Projekt von A bis Z, eine Rolle vor Ort oder hybrid oder einfach ein Fachgespräch. Ich antworte meist am selben Tag.",
+    },
+
+    # ── services ──────────────────────────────────────────────────────────
+    "nav.services": {"fa": "خدمات", "en": "Services", "de": "Leistungen"},
+    "services.start": {"fa": "ثبت درخواست پروژه", "en": "Start a project", "de": "Projekt anfragen"},
+    "services.more": {"fa": "جزئیات همکاری", "en": "How it works", "de": "So läuft es ab"},
+    "services.subject": {"fa": "درخواست انجام پروژه", "en": "Project enquiry", "de": "Projektanfrage"},
+    "services.cta_title": {"fa": "پروژه‌تان را شروع کنیم؟", "en": "Shall we start your project?", "de": "Starten wir Ihr Projekt?"},
+    "services.cta_body": {
+        "fa": "چند خط درباره‌ی نیاز و زمان‌بندی‌تان بنویسید. معمولاً همان روز جواب می‌دهم.",
+        "en": "Write a few lines about what you need and by when. I usually reply the same day.",
+        "de": "Schreiben Sie ein paar Zeilen zu Vorhaben und Zeitrahmen. Ich antworte meist am selben Tag.",
     },
 
     # ── projects ──────────────────────────────────────────────────────────
@@ -90,6 +102,22 @@ STRINGS: dict[str, dict[str, str]] = {
     "blog.back": {"fa": "بازگشت به نوشته‌ها", "en": "Back to writing", "de": "Zurück zum Blog"},
     "blog.empty": {"fa": "هنوز چیزی منتشر نشده.", "en": "Nothing published yet.", "de": "Noch nichts veröffentlicht."},
     "blog.share": {"fa": "اشتراک‌گذاری", "en": "Share", "de": "Teilen"},
+    "blog.related": {"fa": "نوشته‌های دیگر", "en": "More writing", "de": "Weitere Beiträge"},
+    "blog.only_in": {
+        "fa": "این نوشته فقط به این زبان منتشر شده:",
+        "en": "This post is only available in:",
+        "de": "Dieser Beitrag ist nur verfügbar in:",
+    },
+    "blog.original_on": {"fa": "نسخه‌ی اصلی این نوشته در", "en": "Originally posted on", "de": "Ursprünglich veröffentlicht auf"},
+    "blog.original_open": {"fa": "دیدن پست اصلی", "en": "Open the original", "de": "Original öffnen"},
+    "platform.linkedin": {"fa": "لینکدین", "en": "LinkedIn", "de": "LinkedIn"},
+    "platform.x": {"fa": "ایکس", "en": "X", "de": "X"},
+    "platform.github": {"fa": "گیت‌هاب", "en": "GitHub", "de": "GitHub"},
+    "platform.telegram": {"fa": "تلگرام", "en": "Telegram", "de": "Telegram"},
+    "platform.medium": {"fa": "مدیوم", "en": "Medium", "de": "Medium"},
+    "platform.virgool": {"fa": "ویرگول", "en": "Virgool", "de": "Virgool"},
+    "platform.devto": {"fa": "DEV", "en": "DEV", "de": "DEV"},
+    "platform.web": {"fa": "سایت دیگری", "en": "another site", "de": "einer anderen Website"},
 
     # ── about ─────────────────────────────────────────────────────────────
     "about.title": {"fa": "درباره من", "en": "About", "de": "Über mich"},
@@ -108,6 +136,18 @@ STRINGS: dict[str, dict[str, str]] = {
     "contact.form": {"fa": "پیام بفرستید", "en": "Send a message", "de": "Nachricht senden"},
     "contact.name": {"fa": "نام", "en": "Name", "de": "Name"},
     "contact.email": {"fa": "ایمیل", "en": "Email", "de": "E-Mail"},
+    "contact.phone": {"fa": "شمارهٔ تماس", "en": "Phone", "de": "Telefon"},
+    "contact.optional": {"fa": "اختیاری", "en": "optional", "de": "optional"},
+    "contact.phone_hint": {
+        "fa": "اگر بگذارید، برای پروژه زنگ می‌زنم — سریع‌تر از ایمیل.",
+        "en": "Leave one and I can call about a project — faster than email.",
+        "de": "Mit Nummer rufe ich zu einem Projekt an — schneller als E-Mail.",
+    },
+    "contact.phone_bad": {
+        "fa": "شمارهٔ تماس معتبر نیست.",
+        "en": "That phone number does not look right.",
+        "de": "Diese Telefonnummer sieht nicht richtig aus.",
+    },
     "contact.subject": {"fa": "موضوع", "en": "Subject", "de": "Betreff"},
     "contact.message": {"fa": "پیام", "en": "Message", "de": "Nachricht"},
     "contact.send": {"fa": "ارسال پیام", "en": "Send message", "de": "Absenden"},
@@ -132,7 +172,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "card.open_site": {"fa": "دیدن سایت کامل", "en": "Open full site", "de": "Ganze Website"},
 
     # ── resume ────────────────────────────────────────────────────────────
-    "resume.title": {"fa": "رزومه", "en": "Résumé", "de": "Lebenslauf"},
+    "resume.title": {"fa": "رزومه", "en": "Resume", "de": "Lebenslauf"},
     "resume.print": {"fa": "چاپ / PDF", "en": "Print / PDF", "de": "Drucken / PDF"},
     "resume.languages": {"fa": "زبان‌ها", "en": "Languages", "de": "Sprachen"},
 
@@ -157,6 +197,44 @@ STRINGS: dict[str, dict[str, str]] = {
     "cmd.open": {"fa": "جست‌وجو", "en": "Search", "de": "Suche"},
     "cmd.placeholder": {"fa": "صفحه یا پروژه…", "en": "Page or project…", "de": "Seite oder Projekt…"},
     "cmd.empty": {"fa": "نتیجه‌ای نبود", "en": "No results", "de": "Keine Treffer"},
+    "cmd.pages": {"fa": "صفحه‌ها", "en": "Pages", "de": "Seiten"},
+    "cmd.actions": {"fa": "میان‌برها", "en": "Shortcuts", "de": "Aktionen"},
+    "cmd.move": {"fa": "جابه‌جایی", "en": "move", "de": "wählen"},
+    "cmd.go": {"fa": "باز کردن", "en": "open", "de": "öffnen"},
+
+    # ── furniture added with the 2026 redesign ────────────────────────────
+    # Labels and tooltips only. Nothing here says anything about Mahdi; every
+    # value these labels sit next to still comes from the database.
+    "nav.breadcrumb": {"fa": "مسیر صفحه", "en": "Breadcrumb", "de": "Brotkrümelpfad"},
+    "tip.open": {"fa": "باز کردن", "en": "Open", "de": "Öffnen"},
+    "tip.new_tab": {"fa": "در زبانهٔ جدید باز می‌شود", "en": "Opens in a new tab", "de": "Öffnet in neuem Tab"},
+    "tip.filter": {"fa": "پروژه‌های همین برچسب", "en": "Projects with this tag", "de": "Projekte mit diesem Tag"},
+    "home.at_a_glance": {"fa": "در یک نگاه", "en": "At a glance", "de": "Auf einen Blick"},
+    "facts.location": {"fa": "موقعیت", "en": "Location", "de": "Standort"},
+    "facts.availability": {"fa": "وضعیت همکاری", "en": "Availability", "de": "Verfügbarkeit"},
+    "facts.latest_role": {"fa": "آخرین نقش", "en": "Latest role", "de": "Letzte Position"},
+    "facts.core_stack": {"fa": "استک اصلی", "en": "Core stack", "de": "Kern-Stack"},
+    "skills.primary": {"fa": "مهارت اصلی", "en": "Core skill", "de": "Kernkompetenz"},
+    "projects.read_case": {"fa": "جزئیات پروژه", "en": "Read the case study", "de": "Zur Fallstudie"},
+    "exp.duration": {"fa": "مدت", "en": "Duration", "de": "Dauer"},
+    "dur.year": {"fa": "سال", "en": "yr", "de": "J."},
+    "dur.years": {"fa": "سال", "en": "yrs", "de": "J."},
+    "dur.month": {"fa": "ماه", "en": "mo", "de": "Mon."},
+    "dur.months": {"fa": "ماه", "en": "mos", "de": "Mon."},
+    "dur.and": {"fa": " و ", "en": " ", "de": " "},
+    "resume.profile": {"fa": "خلاصه", "en": "Profile", "de": "Profil"},
+    "resume.skills": {"fa": "مهارت‌ها", "en": "Skills", "de": "Kenntnisse"},
+    "channel.email": {"fa": "ایمیل", "en": "Email", "de": "E-Mail"},
+    "channel.telegram": {"fa": "تلگرام", "en": "Telegram", "de": "Telegram"},
+    "channel.github": {"fa": "گیت‌هاب", "en": "GitHub", "de": "GitHub"},
+    "channel.linkedin": {"fa": "لینکدین", "en": "LinkedIn", "de": "LinkedIn"},
+    "channel.phone": {"fa": "تلفن", "en": "Phone", "de": "Telefon"},
+    "card.vcf": {"fa": "فایل vCard", "en": "vCard file", "de": "vCard-Datei"},
+    "footer.explore": {"fa": "گشت‌وگذار", "en": "Explore", "de": "Entdecken"},
+    "footer.career": {"fa": "کارنامه", "en": "Career", "de": "Karriere"},
+    "footer.connect": {"fa": "ارتباط", "en": "Connect", "de": "Vernetzen"},
+    "footer.sitemap": {"fa": "نقشهٔ سایت", "en": "Sitemap", "de": "Sitemap"},
+    "footer.top": {"fa": "بازگشت به بالا", "en": "Back to top", "de": "Nach oben"},
 }
 
 

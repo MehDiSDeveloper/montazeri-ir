@@ -1,14 +1,25 @@
 {% load site_tags %}
-<li class="tl-item{% if item.is_current %} is-current{% endif %}">
-  <div class="tl-when">
-    <time datetime="{{ item.start|iso }}">{{ item.start|smart_date }}</time>
-    —
-    {% if item.end %}<time datetime="{{ item.end|iso }}">{{ item.end|smart_date }}</time>{% else %}{% t "about.present" %}{% endif %}
-  </div>
-  <h3 class="tl-role">{{ item|tr:"role" }}</h3>
-  <div class="tl-org">
-    {% if item.url %}<a href="{{ item.url }}" rel="noopener" target="_blank">{{ item|tr:"org" }}</a>{% else %}{{ item|tr:"org" }}{% endif %}
-    {% if item|tr:"location" %}<span style="color:var(--mute);font-weight:400"> · {{ item|tr:"location" }}</span>{% endif %}
-  </div>
-  {% if item|tr:"description" %}<div class="tl-desc">{{ item|md:"description" }}</div>{% endif %}
+<li class="tl-item reveal{% if item.is_current %} is-current{% endif %}">
+  <span class="tl-dot" aria-hidden="true"></span>
+  <article class="tl-card" data-spot>
+    <header class="tl-head">
+      <div>
+        <h3 class="tl-role">{{ item|tr:"role" }}</h3>
+        <p class="tl-org">
+          {% if item.url %}<a href="{{ item.url }}" rel="noopener" target="_blank" data-tip="{% t 'tip.new_tab' %}">{{ item|tr:"org" }}</a>{% else %}<span>{{ item|tr:"org" }}</span>{% endif %}
+          {% if item|tr:"location" %}<span class="tl-loc"><svg aria-hidden="true"><use href="#i-pin"></use></svg>{{ item|tr:"location" }}</span>{% endif %}
+        </p>
+      </div>
+      <div class="tl-when">
+        <span class="tl-dates">
+          <svg aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <time datetime="{{ item.start|iso }}">{{ item.start|smart_date }}</time>
+          —
+          {% if item.end %}<time datetime="{{ item.end|iso }}">{{ item.end|smart_date }}</time>{% else %}{% t "about.present" %}{% endif %}
+        </span>
+        <span class="tl-dur num" data-tip="{% t 'exp.duration' %}">{% duration item.start item.end %}</span>
+      </div>
+    </header>
+    {% if item|tr:"description" %}<div class="tl-desc">{{ item|md:"description" }}</div>{% endif %}
+  </article>
 </li>

@@ -2,92 +2,141 @@
 {% load site_tags %}
 
 {% block title %}{% t "resume.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{% t "resume.title" %} {{ profile|tr:"full_name" }} — {{ profile|tr:"headline" }}{% endblock %}
+{% block og_title %}{% t "resume.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block og_description %}{{ profile|tr:"headline" }}{% endblock %}
 
 {% block content %}
 {% comment %}The web résumé and the printed one are the same document — one template, one
    set of rows, with a @media print block in site.css doing the rest. There is
-   no second copy to fall out of step with the site.{% endcomment %}
-<section class="page-head">
+   no second copy to fall out of step with the site.
+
+   The layout is a Lebenslauf: a narrow column of the facts a German reviewer
+   checks first (contact, languages, skills) beside the long column of what
+   was done. On a phone the long column comes first.{% endcomment %}
+<section class="page-head" data-accent="sky">
   <div class="shell">
-    <div class="sec-head">
-      <div>
+    <div class="cv-hero" data-spot>
+      <div class="cv-face">
+        {% if profile.avatar %}
+          <img src="{{ profile.avatar.url }}" alt="{{ profile|tr:'full_name' }}" width="104" height="104">
+        {% else %}
+          <span>{{ profile.full_name_en|default:"MM"|initials }}</span>
+        {% endif %}
+      </div>
+      <div class="cv-id">
         <span class="eyebrow">{% t "resume.title" %}</span>
-        <h1>{{ profile|tr:"full_name" }}</h1>
+        <h1 class="page-title">{{ profile|tr:"full_name" }}</h1>
         <p class="sec-lede">{{ profile|tr:"headline" }}</p>
       </div>
-      <div class="linkrow no-print" style="margin-top:0">
-        <button class="btn btn-ghost" type="button" onclick="window.print()">
+      <div class="cv-actions no-print">
+        <button class="btn btn-primary" type="button" onclick="window.print()">
           <svg aria-hidden="true"><use href="#i-print"></use></svg>{% t "resume.print" %}
         </button>
         {% if profile.resume_file %}
-          <a class="btn btn-quiet" href="{{ profile.resume_file.url }}" download>
+          <a class="btn btn-ghost" href="{{ profile.resume_file.url }}" download>
             <svg aria-hidden="true"><use href="#i-download"></use></svg>PDF
           </a>
         {% endif %}
       </div>
     </div>
-
-    <dl class="factbar">
-      {% if profile.email %}<div><dt>Email</dt><dd class="mono">{{ profile.email }}</dd></div>{% endif %}
-      {% if profile.phone %}<div><dt>{% t "contact.title" %}</dt><dd class="mono">{{ profile.phone }}</dd></div>{% endif %}
-      {% if profile|tr:"location" %}<div><dt>Location</dt><dd>{{ profile|tr:"location" }}</dd></div>{% endif %}
-      {% if profile.github %}<div><dt>GitHub</dt><dd class="mono">{{ profile.github }}</dd></div>{% endif %}
-      {% if profile.linkedin %}<div><dt>LinkedIn</dt><dd class="mono">{{ profile.linkedin }}</dd></div>{% endif %}
-      {% comment %}A German CV is read expecting a language line; leaving it to the
-         About page means the reviewer has to go looking for it.{% endcomment %}
-      {% if profile|tr:"languages" %}<div><dt>{% t "resume.languages" %}</dt><dd>{{ profile|tr:"languages" }}</dd></div>{% endif %}
-    </dl>
   </div>
 </section>
 
-{% if work %}
-<section class="sec" style="padding-block-start:0">
-  <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Experience</span><h2 class="sec-title">{% t "about.work" %}</h2></div></div>
-    <ul class="timeline">{% for item in work %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ul>
-  </div>
-</section>
-{% endif %}
+<div class="shell cv-grid">
+  <aside class="cv-aside">
+    <section class="cv-block" data-accent="sky">
+      <h2 class="cv-h">{% t "contact.title" %}</h2>
+      <ul class="cv-contact">
+        {% for link in profile.links %}
+          <li>
+            <span class="ci" aria-hidden="true"><svg><use href="#i-{{ link.key }}"></use></svg></span>
+            <span style="min-width:0">
+              <small>{% t "channel."|add:link.key %}</small>
+              <a class="mono" href="{{ link.href }}" {% if link.key != "email" and link.key != "phone" %}target="_blank" rel="noopener"{% endif %}>{{ link.label }}</a>
+            </span>
+            <button class="mini-btn no-print" type="button" data-copy="{{ link.copy }}" data-copied-label="{% t 'contact.copied' %}"
+                    aria-label="{% t 'contact.copy' %}" data-tip="{% t 'contact.copy' %}">
+              <svg aria-hidden="true"><use href="#i-copy"></use></svg>
+            </button>
+          </li>
+        {% endfor %}
+        {% if profile|tr:"location" %}
+          <li>
+            <span class="ci" aria-hidden="true"><svg><use href="#i-pin"></use></svg></span>
+            <span><small>{% t "facts.location" %}</small><span class="v">{{ profile|tr:"location" }}</span></span>
+          </li>
+        {% endif %}
+      </ul>
+    </section>
 
-{% if education %}
-<section class="sec">
-  <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Education</span><h2 class="sec-title">{% t "about.education" %}</h2></div></div>
-    <ul class="timeline">{% for item in education %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ul>
-  </div>
-</section>
-{% endif %}
+    {% comment %}A German CV is read expecting a language line; leaving it to the
+       About page means the reviewer has to go looking for it.{% endcomment %}
+    {% if profile|tr:"languages" %}
+      <section class="cv-block" data-accent="peach">
+        <h2 class="cv-h">{% t "resume.languages" %}</h2>
+        <p>{{ profile|tr:"languages" }}</p>
+      </section>
+    {% endif %}
 
-{% if skill_groups %}
-<section class="sec sec-band">
-  <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Toolbox</span><h2 class="sec-title">{% t "home.skills" %}</h2></div></div>
-    <div class="skill-groups">
-      {% for group in skill_groups %}
-        <div class="skill-group">
-          <h3>{{ group|tr:"name" }}</h3>
-          <ul class="skill-list">{% for skill in group.skills.all %}<li>{{ skill.name }}</li>{% endfor %}</ul>
-        </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
+    {% if skill_groups %}
+      <section class="cv-block" data-accent="mint">
+        <h2 class="cv-h">{% t "resume.skills" %}</h2>
+        {% for group in skill_groups %}
+          <div class="cv-skills">
+            <h3>{{ group|tr:"name" }}</h3>
+            <ul class="skill-list skill-list-sm">
+              {% for skill in group.skills.all %}
+                {% if skill.is_primary %}<li class="is-primary" data-tip="{% t 'skills.primary' %}"><svg aria-hidden="true"><use href="#i-star"></use></svg>{{ skill.name }}</li>{% else %}<li>{{ skill.name }}</li>{% endif %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </aside>
 
-{% if projects %}
-<section class="sec">
-  <div class="shell">
-    <div class="sec-head"><div><span class="eyebrow">Work</span><h2 class="sec-title">{% t "home.selected_work" %}</h2></div></div>
-    <ul class="timeline">
-      {% for project in projects %}
-        <li class="tl-item">
-          <div class="tl-when">{% if project.year %}{{ project.year|fa_num }}{% endif %}{% if project.stack %} · <span class="mono">{{ project.stack }}</span>{% endif %}</div>
-          <h3 class="tl-role">{{ project|tr:"title" }}</h3>
-          <div class="tl-desc">{{ project|tr:"summary" }}</div>
-        </li>
-      {% endfor %}
-    </ul>
+  <div class="cv-main">
+    {% if profile|tr:"intro" %}
+      <section data-accent="sky">
+        <h2 class="cv-title"><span class="block-ico" aria-hidden="true"><svg><use href="#i-user"></use></svg></span>{% t "resume.profile" %}</h2>
+        <p class="cv-intro">{{ profile|tr:"intro" }}</p>
+      </section>
+    {% endif %}
+
+    {% if work %}
+      <section data-accent="sky">
+        <h2 class="cv-title"><span class="block-ico" aria-hidden="true"><svg><use href="#i-briefcase"></use></svg></span>{% t "about.work" %}</h2>
+        <ol class="timeline">{% for item in work %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ol>
+      </section>
+    {% endif %}
+
+    {% if education %}
+      <section data-accent="lilac">
+        <h2 class="cv-title"><span class="block-ico" aria-hidden="true"><svg><use href="#i-doc"></use></svg></span>{% t "about.education" %}</h2>
+        <ol class="timeline">{% for item in education %}{% include "partials/timeline_item.html" with item=item %}{% endfor %}</ol>
+      </section>
+    {% endif %}
+
+    {% if projects %}
+      <section data-accent="mint">
+        <h2 class="cv-title"><span class="block-ico" aria-hidden="true"><svg><use href="#i-grid"></use></svg></span>{% t "home.selected_work" %}</h2>
+        <ol class="cv-projects">
+          {% for project in projects %}
+            <li class="reveal">
+              <a href="{{ project.get_absolute_url }}" data-spot>
+                <div class="cv-p-head">
+                  <h3>{{ project|tr:"title" }}</h3>
+                  {% if project.year %}<span class="num">{{ project.year|fa_num }}</span>{% endif %}
+                </div>
+                <p>{{ project|tr:"summary" }}</p>
+                {% if project.stack_list %}<div class="stack">{% for item in project.stack_list %}<i>{{ item }}</i>{% endfor %}</div>{% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
   </div>
-</section>
-{% endif %}
+</div>
 {% endblock %}

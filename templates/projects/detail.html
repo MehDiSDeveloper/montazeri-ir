@@ -1,86 +1,128 @@
 {% extends "base.html" %}
-{% load site_tags %}
+{% load site_tags seo_tags %}
 
 {% block title %}{{ project|tr:"title" }} — {{ profile|tr:"full_name" }}{% endblock %}
 {% block description %}{{ project|tr:"summary" }}{% endblock %}
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ project|tr:"title" }}{% endblock %}
 {% block og_description %}{{ project|tr:"summary" }}{% endblock %}
-{% block og_image %}{% if project.cover %}<meta property="og:image" content="{{ site_url }}{{ project.cover.url }}">{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image %}{% include "partials/og_image.html" with image=project.cover|default:profile.share_image alt=project|tr:"title" %}{% endblock %}
+{% block head_extra %}{% ld_project project %}{% endblock %}
 
 {% block content %}
+{% comment %}The case study reads in the order a reviewer asks: what was it, did it
+   work (the outcome, up top), then the problem and the build. The facts sit in
+   a column that stays in view — and on a phone they come first.{% endcomment %}
 <article>
-  <section class="page-head">
-    <div class="shell narrow">
-      <a class="crumb" href="{% url 'project_list' %}">
-        <svg aria-hidden="true"><use href="#i-arrow"></use></svg>
-        {% t "projects.back" %}
-      </a>
-      <h1>{{ project|tr:"title" }}</h1>
-      <p class="sec-lede">{{ project|tr:"summary" }}</p>
+  <header class="page-head">
+    <div class="shell">
+      <nav aria-label="{% t 'nav.breadcrumb' %}">
+        <ol class="crumbs">
+          <li><a href="{% url 'home' %}">{% t "nav.home" %}</a></li>
+          <li aria-hidden="true"><svg><use href="#i-chevron"></use></svg></li>
+          <li><a href="{% url 'project_list' %}">{% t "projects.title" %}</a></li>
+          <li aria-hidden="true"><svg><use href="#i-chevron"></use></svg></li>
+          <li><span aria-current="page">{{ project|tr:"title"|truncatechars:48 }}</span></li>
+        </ol>
+      </nav>
 
       {% if project.tags.all %}
-        <div class="chipbar" style="margin-top:16px">
-          {% for tag in project.tags.all %}<span class="tag">{{ tag|tr:"name" }}</span>{% endfor %}
+        <div class="detail-tags">
+          {% for tag in project.tags.all %}<a class="tag" href="{% url 'project_list' %}?tag={{ tag.slug }}" data-tip="{% t 'tip.filter' %}">{{ tag|tr:"name" }}</a>{% endfor %}
         </div>
       {% endif %}
 
-      {# The facts a reader scans for before deciding to read the prose. #}
-      <dl class="factbar">
-        {% if project.year %}
-          <div><dt>{% t "projects.year" %}</dt><dd class="num">{{ project.year|fa_num }}</dd></div>
-        {% endif %}
-        {% if project|tr:"role" %}
-          <div><dt>{% t "projects.role" %}</dt><dd>{{ project|tr:"role" }}</dd></div>
-        {% endif %}
-        {% if project.stack_list %}
-          <div><dt>{% t "projects.stack" %}</dt><dd class="mono">{{ project.stack }}</dd></div>
-        {% endif %}
-        {% if project|tr:"outcome" %}
-          <div><dt>{% t "projects.outcome" %}</dt><dd>{{ project|tr:"outcome" }}</dd></div>
-        {% endif %}
-      </dl>
+      <h1 class="page-title">{{ project|tr:"title" }}</h1>
+      <p class="lede-lg" style="margin-top:14px">{{ project|tr:"summary" }}</p>
 
-      {% if project.repo_url or project.demo_url %}
-        <div class="linkrow">
+      {% if project|tr:"outcome" %}
+        <div class="outcome reveal">
+          <span class="outcome-ico" aria-hidden="true"><svg><use href="#i-target"></use></svg></span>
+          <div>
+            <span class="outcome-label">{% t "projects.outcome" %}</span>
+            <p>{{ project|tr:"outcome" }}</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <div class="shell detail-grid">
+    <div class="detail-main">
+      {% if project.cover %}
+        <figure class="detail-cover">
+          <img src="{{ project.cover.url }}" alt="{{ project|tr:'title' }}" fetchpriority="high" decoding="async">
+        </figure>
+      {% endif %}
+
+      {% if project|tr:"problem" %}
+        <section class="detail-block" data-accent="peach">
+          <h2 class="block-title"><span class="block-ico" aria-hidden="true"><svg><use href="#i-info"></use></svg></span>{% t "projects.problem" %}</h2>
+          <div class="prose">{{ project|md:"problem" }}</div>
+        </section>
+      {% endif %}
+
+      <section class="detail-block">
+        <div class="prose">{{ project|md:"body" }}</div>
+      </section>
+    </div>
+
+    <aside class="detail-aside">
+      <div class="aside-card">
+        <dl class="facts">
+          {% if project.year %}
+            <div class="fact">
+              <span class="fact-ico" aria-hidden="true"><svg><use href="#i-calendar"></use></svg></span>
+              <dt>{% t "projects.year" %}</dt><dd class="num">{{ project.year|fa_num }}</dd>
+            </div>
+          {% endif %}
+          {% if project|tr:"role" %}
+            <div class="fact">
+              <span class="fact-ico" aria-hidden="true"><svg><use href="#i-user"></use></svg></span>
+              <dt>{% t "projects.role" %}</dt><dd>{{ project|tr:"role" }}</dd>
+            </div>
+          {% endif %}
+          {% if project.stack_list %}
+            <div class="fact">
+              <span class="fact-ico" aria-hidden="true"><svg><use href="#i-layers"></use></svg></span>
+              <dt>{% t "projects.stack" %}</dt>
+              <dd><div class="stack">{% for item in project.stack_list %}<i>{{ item }}</i>{% endfor %}</div></dd>
+            </div>
+          {% endif %}
+        </dl>
+
+        <div class="aside-actions">
           {% if project.demo_url %}
-            <a class="btn btn-primary" href="{{ project.demo_url }}" target="_blank" rel="noopener">
+            <a class="btn btn-primary btn-block" href="{{ project.demo_url }}" target="_blank" rel="noopener" data-tip="{% t 'tip.new_tab' %}">
               <svg aria-hidden="true"><use href="#i-external"></use></svg>{% t "projects.demo" %}
             </a>
           {% endif %}
           {% if project.repo_url %}
-            <a class="btn btn-ghost" href="{{ project.repo_url }}" target="_blank" rel="noopener">
+            <a class="btn btn-ghost btn-block" href="{{ project.repo_url }}" target="_blank" rel="noopener" data-tip="{% t 'tip.new_tab' %}">
               <svg aria-hidden="true"><use href="#i-github"></use></svg>{% t "projects.repo" %}
             </a>
           {% endif %}
+          <button class="btn btn-quiet btn-block no-print" type="button"
+                  data-share="{{ site_url }}{{ project.get_absolute_url }}" data-copied-label="{% t 'contact.copied' %}">
+            <svg aria-hidden="true"><use href="#i-share"></use></svg>{% t "blog.share" %}
+          </button>
         </div>
-      {% endif %}
-    </div>
-  </section>
-
-  {% if project.cover %}
-    <div class="shell" style="margin-bottom:40px">
-      <img src="{{ project.cover.url }}" alt="{{ project|tr:'title' }}"
-           style="width:100%;border-radius:var(--r-xl);border:1px solid var(--line);box-shadow:var(--shadow-2)">
-    </div>
-  {% endif %}
-
-  <section class="sec" style="padding-block-start:0">
-    <div class="shell narrow">
-      {% if project|tr:"problem" %}
-        <h2 class="sec-title" style="font-size:var(--step-2);margin-bottom:12px">{% t "projects.problem" %}</h2>
-        <div class="prose" style="margin-bottom:40px">{{ project|md:"problem" }}</div>
-      {% endif %}
-      <div class="prose">{{ project|md:"body" }}</div>
-    </div>
-  </section>
+      </div>
+    </aside>
+  </div>
 
   {% if next_project %}
-    <section class="sec" style="padding-block-start:0">
+    <section class="sec sec-band" style="padding-block:var(--sec)">
       <div class="shell">
-        <div class="sec-head"><span class="eyebrow">{% t "projects.next" %}</span></div>
-        <div class="grid-projects" style="grid-template-columns:minmax(0,1fr)">
-          {% include "partials/project_card.html" with project=next_project index=1 %}
+        <header class="sec-head reveal">
+          <div><span class="eyebrow">Next</span><h2 class="sec-title">{% t "projects.next" %}</h2></div>
+          <a class="more" href="{% url 'project_list' %}">
+            {% t "projects.back" %}
+            <svg class="fwd" aria-hidden="true"><use href="#i-arrow"></use></svg>
+          </a>
+        </header>
+        <div class="cases">
+          {% include "partials/case_card.html" with project=next_project index=next_index %}
         </div>
       </div>
     </section>

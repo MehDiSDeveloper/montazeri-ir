@@ -1,35 +1,44 @@
-{% load static site_tags %}<!DOCTYPE html>
+{% load static site_tags seo_tags %}<!DOCTYPE html>
 <html lang="{{ lang }}" dir="{{ text_dir }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <title>{% block title %}{{ profile|tr:"full_name" }}{% endblock %}</title>
-  <meta name="description" content="{% block description %}{{ profile|tr:"headline" }}{% endblock %}">
+  {% comment %}The defaults are the home page's: seo_title and seo_description from the
+     profile, falling back to the name and the intro. Every other page overrides
+     title and description, and og_title / og_description where it gets shared.{% endcomment %}
+  <title>{% block title %}{% firstof profile|tr:"seo_title" profile|tr:"full_name" %}{% endblock %}</title>
+  <meta name="description" content="{% block description %}{% firstof profile|tr:"seo_description" profile|tr:"intro"|truncatechars:160 %}{% endblock %}">
   <meta name="author" content="{{ profile|tr:"full_name" }}">
+  <meta name="robots" content="{% block robots %}{{ seo_robots|default:'index, follow, max-image-preview:large, max-snippet:-1' }}{% endblock %}">
 
   {% comment %}The reader's own language is canonical; the other two are alternates, so a
-     search engine indexes three real pages instead of guessing at duplicates.{% endcomment %}
-  <link rel="canonical" href="{{ site_url }}{{ request.path }}">
-  {% for l in language_links %}
-    <link rel="alternate" hreflang="{{ l.code }}" href="{{ site_url }}{{ l.url }}">
+     search engine indexes three real pages instead of guessing at duplicates.
+     Both come from the context processor without the query string; a view that
+     knows better (a post written in one language) passes seo_canonical and
+     seo_alternates. x-default is the unprefixed URL, the one that picks a
+     language by country.{% endcomment %}
+  <link rel="canonical" href="{{ seo_canonical|default:canonical_url }}">
+  {% for alt in seo_alternates|default:alternates %}<link rel="alternate" hreflang="{{ alt.code }}" href="{{ alt.href }}">
   {% endfor %}
-  <link rel="alternate" hreflang="x-default" href="{{ site_url }}{{ request.path }}">
   <link rel="alternate" type="application/rss+xml" title="{{ profile|tr:"full_name" }}" href="{% url 'feed' %}">
 
+  <meta property="og:site_name" content="{{ profile|tr:"full_name" }}">
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
-  <meta property="og:title" content="{% block og_title %}{{ profile|tr:"full_name" }}{% endblock %}">
-  <meta property="og:description" content="{% block og_description %}{{ profile|tr:"headline" }}{% endblock %}">
-  <meta property="og:url" content="{{ site_url }}{{ request.path }}">
-  <meta property="og:locale" content="{{ lang }}">
-  {% block og_image %}{% if profile.avatar %}<meta property="og:image" content="{{ site_url }}{{ profile.avatar.url }}">{% endif %}{% endblock %}
-  <meta name="twitter:card" content="summary_large_image">
+  <meta property="og:title" content="{% block og_title %}{% firstof profile|tr:"seo_title" profile|tr:"full_name" %}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{% firstof profile|tr:"seo_description" profile|tr:"intro"|truncatechars:200 %}{% endblock %}">
+  <meta property="og:url" content="{{ seo_canonical|default:canonical_url }}">
+  <meta property="og:locale" content="{{ og_locale }}">
+  {% for loc in og_locale_alternates %}<meta property="og:locale:alternate" content="{{ loc }}">
+  {% endfor %}
+  {% block og_image %}{% include "partials/og_image.html" with image=profile.share_image alt=profile|tr:"full_name" %}{% endblock %}
+  {% block og_extra %}{% endblock %}
 
   {% comment %}Two of them, so the browser chrome matches the ground the reader is
-     actually on. The values are --bg from the two token blocks in site.css;
-     if those change, these change with them.{% endcomment %}
-  <meta name="theme-color" content="#fbf7f0" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0f1512" media="(prefers-color-scheme: dark)">
+     actually on. The values are --bg from the token blocks in site.css and
+     THEME_COLOR in app.js; if those change, these change with them.{% endcomment %}
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12141b" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
 
   {% comment %}Pre-paint, blocking, on purpose: deferring the stored theme to app.js
@@ -44,88 +53,100 @@
     })();
   </script>
 
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="preload" href="{% static 'fonts/Vazirmatn-Variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static_v 'css/site.css' %}">
   {% block head_extra %}{% endblock %}
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": "{{ profile|tr:"full_name"|escapejs }}",
-    "jobTitle": "{{ profile|tr:"headline"|escapejs }}",
-    "url": "{{ site_url }}"{% if profile.email %},
-    "email": "{{ profile.email|escapejs }}"{% endif %}{% if profile|tr:"location" %},
-    "address": {"@type": "PostalAddress", "addressLocality": "{{ profile|tr:"location"|escapejs }}"}{% endif %}{% if profile.github or profile.linkedin %},
-    "sameAs": [{% if profile.github %}"https://github.com/{{ profile.github|escapejs }}"{% endif %}{% if profile.github and profile.linkedin %}, {% endif %}{% if profile.linkedin %}"https://linkedin.com/in/{{ profile.linkedin|escapejs }}"{% endif %}]{% endif %}
-  }
-  </script>
+  {% ld_site %}
 </head>
 
 <body dir="{{ text_dir }}">
+  <div class="ambient" aria-hidden="true"><div class="ambient-field"><i></i><i></i><i></i><i></i></div><canvas class="ambient-net" data-ambient-net></canvas></div>
   {% include "partials/icons.html" %}
 
   <a class="skip" href="#main">{% t "nav.skip" %}</a>
 
-  <header class="hdr">
+  {% comment %}The nav order is the order a recruiter reads a candidate in: what they
+     built, where they worked, who they are, what they write. Contact is not a
+     nav item but the one button in the bar, because it is the one thing every
+     visitor might want from any page.{% endcomment %}
+  <header class="hdr" data-hdr>
+    <div class="hdr-progress" aria-hidden="true"><span data-progress></span></div>
     <div class="shell">
-      <div class="hdr-in">
-        <a class="brand" href="{% url 'home' %}">
-          <span class="brand-mark" aria-hidden="true">MM</span>
+      <div class="hdr-bar">
+        <a class="brand" href="{% url 'home' %}" aria-label="{{ profile|tr:'full_name' }} — {% t 'nav.home' %}">
+          <span class="brand-mark" aria-hidden="true"><span>MM</span></span>
           <span class="brand-name">
             {{ profile|tr:"full_name" }}
             <small>{{ profile|tr:"headline"|truncatechars:34 }}</small>
           </span>
         </a>
 
-        <nav class="nav" aria-label="{% t 'nav.menu' %}">
+        <nav class="nav" aria-label="{% t 'nav.menu' %}" data-nav>
+          <span class="nav-ind" aria-hidden="true"></span>
           <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
-          {% if has_writing %}<a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>{% endif %}
-          <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
+          {% if has_offer %}<a href="{% url 'services' %}" class="{% active 'services' %}">{% t "nav.services" %}</a>{% endif %}
           <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
-          <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
+          <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
+          {% if has_writing %}<a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>{% endif %}
         </nav>
 
         <div class="hdr-tools">
-          <button class="icon-btn" type="button" data-cmdk-open aria-label="{% t 'cmd.open' %}" title="Ctrl + K">
+          <button class="icon-btn search-btn" type="button" data-cmdk-open aria-label="{% t 'cmd.open' %}" data-tip="{% t 'cmd.open' %}">
             <svg aria-hidden="true"><use href="#i-search"></use></svg>
           </button>
 
-          <button class="icon-btn" type="button" data-theme-cycle
-                  aria-label="{% t 'nav.theme' %}"
+          <button class="icon-btn theme-btn" type="button" data-theme-cycle
+                  aria-label="{% t 'nav.theme' %}" data-tip="{% t 'nav.theme' %}"
                   data-label-system="{% t 'theme.system' %}"
                   data-label-light="{% t 'theme.light' %}"
                   data-label-dark="{% t 'theme.dark' %}">
-            <svg aria-hidden="true"><use href="#i-theme"></use></svg>
+            <svg class="ti ti-system" aria-hidden="true"><use href="#i-monitor"></use></svg>
+            <svg class="ti ti-light" aria-hidden="true"><use href="#i-sun"></use></svg>
+            <svg class="ti ti-dark" aria-hidden="true"><use href="#i-moon"></use></svg>
           </button>
 
           <div class="lang" data-popover>
-            <button class="icon-btn lang-btn" type="button" data-popover-btn aria-expanded="false" aria-haspopup="true">
+            <button class="icon-btn lang-btn" type="button" data-popover-btn aria-expanded="false" aria-haspopup="true"
+                    aria-label="{% t 'nav.language' %}" data-tip="{% t 'nav.language' %}">
               <svg aria-hidden="true"><use href="#i-globe"></use></svg>
               <span class="mono">{{ lang|upper }}</span>
+              <svg class="chev" aria-hidden="true"><use href="#i-chevron"></use></svg>
             </button>
-            <div class="lang-menu" data-popover-menu hidden role="menu">
+            <div class="pop lang-menu" data-popover-menu hidden role="menu">
               {% for l in language_links %}
-                <a href="{{ l.url }}" role="menuitem" {% if l.is_active %}aria-current="true"{% endif %}>
+                <a href="{{ l.url }}" role="menuitem" hreflang="{{ l.code }}" lang="{{ l.code }}" {% if l.is_active %}aria-current="true"{% endif %}>
+                  <svg class="tick" aria-hidden="true"><use href="#i-check"></use></svg>
                   <span>{{ l.native }}</span><span class="code">{{ l.code|upper }}</span>
                 </a>
               {% endfor %}
             </div>
           </div>
 
-          <button class="icon-btn burger" type="button" data-burger aria-expanded="false" aria-label="{% t 'nav.menu' %}">
-            <svg aria-hidden="true"><use href="#i-menu"></use></svg>
+          <a class="btn btn-sm btn-primary hdr-cta {% active 'contact' %}" data-accent="peach" href="{% url 'contact' %}">
+            {% t "nav.contact" %}
+            <svg aria-hidden="true"><use href="#i-send"></use></svg>
+          </a>
+
+          <button class="icon-btn burger" type="button" data-burger aria-expanded="false" aria-controls="mnav" aria-label="{% t 'nav.menu' %}">
+            <span class="burger-lines" aria-hidden="true"><i></i><i></i><i></i></span>
           </button>
         </div>
       </div>
 
-      <nav class="mnav" data-mnav hidden aria-label="{% t 'nav.menu' %}">
-        <a href="{% url 'home' %}" class="{% active 'home' %}">{% t "nav.home" %}</a>
-        <a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}">{% t "nav.projects" %}</a>
-        {% if has_writing %}<a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}">{% t "nav.writing" %}</a>{% endif %}
-        <a href="{% url 'about' %}" class="{% active 'about' %}">{% t "nav.about" %}</a>
-        <a href="{% url 'resume' %}" class="{% active 'resume' %}">{% t "nav.resume" %}</a>
-        <a href="{% url 'contact' %}" class="{% active 'contact' %}">{% t "nav.contact" %}</a>
-        <a href="{% url 'card' %}" class="{% active 'card' %}">{% t "nav.card" %}</a>
+      <nav class="mnav" id="mnav" data-mnav hidden aria-label="{% t 'nav.menu' %}">
+        <ul class="mnav-links rhythm">
+          <li><a href="{% url 'home' %}" class="{% active 'home' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-home"></use></svg></span>{% t "nav.home" %}</a></li>
+          <li><a href="{% url 'project_list' %}" class="{% active 'project_list' 'project_detail' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-grid"></use></svg></span>{% t "nav.projects" %}</a></li>
+          {% if has_offer %}<li><a href="{% url 'services' %}" class="{% active 'services' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-briefcase"></use></svg></span>{% t "nav.services" %}</a></li>{% endif %}
+          <li><a href="{% url 'resume' %}" class="{% active 'resume' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-doc"></use></svg></span>{% t "nav.resume" %}</a></li>
+          <li><a href="{% url 'about' %}" class="{% active 'about' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-user"></use></svg></span>{% t "nav.about" %}</a></li>
+          {% if has_writing %}<li><a href="{% url 'post_list' %}" class="{% active 'post_list' 'post_detail' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-pen"></use></svg></span>{% t "nav.writing" %}</a></li>{% endif %}
+          <li><a href="{% url 'contact' %}" class="{% active 'contact' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-mail"></use></svg></span>{% t "nav.contact" %}</a></li>
+          <li><a href="{% url 'card' %}" class="{% active 'card' %}"><span class="mi"><svg aria-hidden="true"><use href="#i-qr"></use></svg></span>{% t "nav.card" %}</a></li>
+        </ul>
+        <div class="mnav-foot">
+          {% for l in language_links %}<a href="{{ l.url }}" hreflang="{{ l.code }}" lang="{{ l.code }}" {% if l.is_active %}aria-current="true"{% endif %}>{{ l.native }}</a>{% endfor %}
+        </div>
       </nav>
     </div>
   </header>
@@ -134,31 +155,95 @@
     {% block content %}{% endblock %}
   </main>
 
+  {% comment %}The footer is the site map: every page, grouped the way a reader looks
+     for it, plus the machine endpoints people do occasionally want.{% endcomment %}
   <footer class="ftr no-print">
-    <div class="shell ftr-in">
-      <div class="ftr-links">
-        <a href="{% url 'project_list' %}">{% t "nav.projects" %}</a>
-        {% if has_writing %}<a href="{% url 'post_list' %}">{% t "nav.writing" %}</a>{% endif %}
-        <a href="{% url 'about' %}">{% t "nav.about" %}</a>
-        <a href="{% url 'card' %}">{% t "nav.card" %}</a>
-        <a href="{% url 'contact' %}">{% t "nav.contact" %}</a>
-        <a href="{% url 'feed' %}">RSS</a>
+    <div class="shell">
+      <div class="ftr-top">
+        <div class="ftr-brand">
+          <a class="brand" href="{% url 'home' %}">
+            <span class="brand-mark" aria-hidden="true"><span>MM</span></span>
+            <span class="brand-name">{{ profile|tr:"full_name" }}</span>
+          </a>
+          <p>{{ profile|tr:"headline" }}</p>
+          {% if profile.is_available and profile|tr:"availability" %}
+            <span class="pill" data-accent="peach"><span class="pill-dot live"></span>{{ profile|tr:"availability" }}</span>
+          {% endif %}
+        </div>
+
+        <div class="ftr-cols rhythm">
+          <div class="ftr-col">
+            <h2>{% t "footer.explore" %}</h2>
+            <ul>
+              <li><a href="{% url 'home' %}"><svg aria-hidden="true"><use href="#i-home"></use></svg>{% t "nav.home" %}</a></li>
+              <li><a href="{% url 'project_list' %}"><svg aria-hidden="true"><use href="#i-grid"></use></svg>{% t "nav.projects" %}</a></li>
+              {% if has_offer %}<li><a href="{% url 'services' %}"><svg aria-hidden="true"><use href="#i-briefcase"></use></svg>{% t "nav.services" %}</a></li>{% endif %}
+              <li><a href="{% url 'about' %}"><svg aria-hidden="true"><use href="#i-user"></use></svg>{% t "nav.about" %}</a></li>
+              {% if has_writing %}<li><a href="{% url 'post_list' %}"><svg aria-hidden="true"><use href="#i-pen"></use></svg>{% t "nav.writing" %}</a></li>{% endif %}
+            </ul>
+          </div>
+          <div class="ftr-col">
+            <h2>{% t "footer.career" %}</h2>
+            <ul>
+              <li><a href="{% url 'resume' %}"><svg aria-hidden="true"><use href="#i-doc"></use></svg>{% t "nav.resume" %}</a></li>
+              {% if profile.resume_file %}<li><a href="{{ profile.resume_file.url }}" download><svg aria-hidden="true"><use href="#i-download"></use></svg>{% t "home.download_resume" %}</a></li>{% endif %}
+              <li><a href="{% url 'card' %}"><svg aria-hidden="true"><use href="#i-qr"></use></svg>{% t "card.title" %}</a></li>
+              <li><a href="{% url 'vcard' %}" download><svg aria-hidden="true"><use href="#i-download"></use></svg>{% t "card.vcf" %}</a></li>
+            </ul>
+          </div>
+          <div class="ftr-col">
+            <h2>{% t "footer.connect" %}</h2>
+            <ul>
+              <li><a href="{% url 'contact' %}"><svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "nav.contact" %}</a></li>
+              {% for link in profile.links %}
+                {% if link.key == "github" or link.key == "linkedin" or link.key == "telegram" %}
+                  <li><a href="{{ link.href }}" target="_blank" rel="noopener" data-tip="{% t 'tip.new_tab' %}"><svg aria-hidden="true"><use href="#i-{{ link.key }}"></use></svg>{% t "channel."|add:link.key %}</a></li>
+                {% endif %}
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
       </div>
-      <small>© {% now "Y" %} {{ profile|tr:"full_name" }} — {% t "footer.rights" %}</small>
+
+      <div class="ftr-bottom">
+        <small>© {% now "Y" %} {{ profile|tr:"full_name" }} — {% t "footer.rights" %}</small>
+        <div class="ftr-meta">
+          <a href="{% url 'feed' %}"><svg aria-hidden="true"><use href="#i-rss"></use></svg>RSS</a>
+          <a href="{% url 'sitemap' %}"><svg aria-hidden="true"><use href="#i-map"></use></svg>{% t "footer.sitemap" %}</a>
+          <button type="button" data-to-top><svg aria-hidden="true"><use href="#i-arrow-up"></use></svg>{% t "footer.top" %}</button>
+        </div>
+      </div>
     </div>
   </footer>
 
+  {% comment %}Floating back-to-top with the reading progress drawn round it. Hidden
+     until app.js takes it over, because without JavaScript it cannot work.{% endcomment %}
+  <button class="to-top no-print" type="button" data-to-top-float hidden aria-label="{% t 'footer.top' %}" data-tip="{% t 'footer.top' %}">
+    <svg class="to-top-ring" viewBox="0 0 50 50" aria-hidden="true"><circle class="track" cx="25" cy="25" r="22"/><circle class="bar" cx="25" cy="25" r="22"/></svg>
+    <svg aria-hidden="true"><use href="#i-arrow-up"></use></svg>
+  </button>
+
   {% comment %}Command palette. The index ships with the page, so opening it costs
      nothing and it can never disagree with what the site actually has.{% endcomment %}
-  <div class="cmdk" data-cmdk hidden data-empty="{% t 'cmd.empty' %}">
-    <div class="cmdk-scrim"></div>
+  <div class="cmdk" data-cmdk hidden
+       data-empty="{% t 'cmd.empty' %}" data-group-pages="{% t 'cmd.pages' %}" data-group-actions="{% t 'cmd.actions' %}">
+    <div class="cmdk-scrim" data-cmdk-close></div>
     <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="{% t 'cmd.open' %}">
-      <input class="cmdk-input" type="text" placeholder="{% t 'cmd.placeholder' %}" autocomplete="off" spellcheck="false">
-      <div class="cmdk-list"></div>
+      <div class="cmdk-search">
+        <svg aria-hidden="true"><use href="#i-search"></use></svg>
+        <input class="cmdk-input" type="text" placeholder="{% t 'cmd.placeholder' %}" autocomplete="off" spellcheck="false" aria-label="{% t 'cmd.open' %}">
+        <kbd class="kbd">Esc</kbd>
+      </div>
+      <div class="cmdk-list" role="listbox"></div>
+      <div class="cmdk-foot">
+        <span><kbd class="kbd">↑</kbd><kbd class="kbd">↓</kbd>{% t "cmd.move" %}</span>
+        <span><kbd class="kbd">↵</kbd>{% t "cmd.go" %}</span>
+        <span><kbd class="kbd">Esc</kbd>{% t "nav.close" %}</span>
+      </div>
     </div>
   </div>
   {{ cmdk_index|json_script:"cmdk-data" }}
 
-  <script src="{% static 'js/app.js' %}" defer></script>
+  <script src="{% static_v 'js/app.js' %}" defer></script>
 </body>
 </html>

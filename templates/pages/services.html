@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load site_tags seo_tags %}
+
+{% block title %}{{ profile|tr:"offer_title" }} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block description %}{{ profile|tr:"offer_lede"|truncatechars:160 }}{% endblock %}
+{% block og_title %}{{ profile|tr:"offer_title" }}{% endblock %}
+{% block og_description %}{{ profile|tr:"offer_lede"|truncatechars:200 }}{% endblock %}
+{% block head_extra %}{% ld_services services %}{% endblock %}
+
+{% block content %}
+{% comment %}The page that earns. It reads in the order a client decides: what they
+   get, the four promises, what can be built and how a project runs, then one
+   button — which lands on the contact form with the subject already filled.{% endcomment %}
+<section class="page-head" data-accent="peach">
+  <div class="shell">
+    <span class="eyebrow">Services</span>
+    <h1 class="page-title">{{ profile|tr:"offer_title" }}</h1>
+    {% if profile|tr:"offer_lede" %}<p class="lede-lg" style="margin-top:14px">{{ profile|tr:"offer_lede" }}</p>{% endif %}
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="{% url 'contact' %}?topic=project">
+        <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "services.start" %}
+      </a>
+      {% if profile.email %}
+        <a class="btn btn-ghost btn-lg" href="mailto:{{ profile.email }}">
+          <svg aria-hidden="true"><use href="#i-mail"></use></svg><span class="mono">{{ profile.email }}</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% if services %}
+<section class="sec sec-flush" data-accent="peach">
+  <div class="shell">{% include "partials/offer_points.html" %}</div>
+</section>
+{% endif %}
+
+{% if profile|tr:"offer_body" %}
+<section class="sec sec-band" data-accent="peach">
+  <div class="narrow"><div class="prose reveal">{{ profile|md:"offer_body" }}</div></div>
+</section>
+{% endif %}
+
+<section class="sec">
+  <div class="shell">
+    <div class="cta reveal" data-accent="peach">
+      <div class="cta-art" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="cta-copy">
+        <h2>{% t "services.cta_title" %}</h2>
+        <p>{% t "services.cta_body" %}</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="{% url 'contact' %}?topic=project">
+          <svg aria-hidden="true"><use href="#i-send"></use></svg>{% t "services.start" %}
+        </a>
+        <a class="btn btn-ghost btn-lg" data-accent="mint" href="{% url 'project_list' %}">
+          <svg aria-hidden="true"><use href="#i-grid"></use></svg>{% t "home.view_work" %}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

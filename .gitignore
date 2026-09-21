@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .env
+docker-compose.override.yml
 data/db.sqlite3
 data/db.sqlite3-*
 data/media/
@@ -11,3 +12,4 @@ data/staticfiles/
 *.log
 .idea/
 .vscode/
+data/geoip/

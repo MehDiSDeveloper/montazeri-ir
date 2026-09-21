@@ -1,0 +1,5 @@
+{% comment %}The picture a shared link shows. `image` is an ImageField file or empty;
+   with no picture the card is the small one, not a large empty box.{% endcomment %}
+{% if image %}<meta property="og:image" content="{{ site_url }}{{ image.url }}">
+  <meta property="og:image:alt" content="{{ alt }}">
+  <meta name="twitter:card" content="summary_large_image">{% else %}<meta name="twitter:card" content="summary">{% endif %}

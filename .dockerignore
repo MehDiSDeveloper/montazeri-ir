@@ -11,3 +11,4 @@ data/staticfiles
 .vscode
 *.md
 !README.md
+data/geoip

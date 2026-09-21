@@ -3,36 +3,44 @@
 
 {% block title %}{% t "blog.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
 {% block description %}{% t "blog.lede" %}{% endblock %}
+{% block og_title %}{% t "blog.title" %} — {{ profile|tr:"full_name" }}{% endblock %}
+{% block og_description %}{% t "blog.lede" %}{% endblock %}
 
 {% block content %}
-<section class="page-head">
-  <div class="shell">
-    <span class="eyebrow">Writing</span>
-    <h1>{% t "blog.title" %}</h1>
-    <p class="sec-lede">{% t "blog.lede" %}</p>
-  </div>
-</section>
+<div data-accent="lilac">
+  <section class="page-head">
+    <div class="shell">
+      <span class="eyebrow">Writing</span>
+      <h1 class="page-title">{% t "blog.title" %}<span class="count num">{{ posts|length|fa_num }}</span></h1>
+      <p class="sec-lede">{% t "blog.lede" %}</p>
+    </div>
+  </section>
 
-<section class="sec" style="padding-block-start:0">
-  <div class="shell">
-    {% if tags %}
-      <div class="chipbar no-print" data-filter-bar style="margin-bottom:26px">
-        <button class="chip" type="button" data-tag="" aria-pressed="true">{% t "projects.filter_all" %}</button>
-        {% for tag in tags %}
-          <button class="chip" type="button" data-tag="{{ tag.slug }}" aria-pressed="false">{{ tag|tr:"name" }}</button>
+  <section class="sec sec-flush">
+    <div class="shell">
+      {% if tags %}
+        <div class="chipbar no-print" data-filter-bar role="toolbar" style="margin-bottom:28px">
+          <button class="chip" type="button" data-tag="" aria-pressed="{% if active_tag %}false{% else %}true{% endif %}">
+            {% t "projects.filter_all" %}<span class="chip-n num">{{ posts|length|fa_num }}</span>
+          </button>
+          {% for tag in tags %}
+            <button class="chip" type="button" data-tag="{{ tag.slug }}" aria-pressed="{% if active_tag == tag.slug %}true{% else %}false{% endif %}">
+              {{ tag|tr:"name" }}<span class="chip-n num">{{ tag.n|fa_num }}</span>
+            </button>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div class="post-list" data-filter-list>
+        {% for post in posts %}
+          {% include "partials/post_row.html" with post=post %}
+        {% empty %}
+          <p class="empty">{% t "blog.empty" %}</p>
         {% endfor %}
       </div>
-    {% endif %}
 
-    <div class="post-list" data-filter-list>
-      {% for post in posts %}
-        {% include "partials/post_row.html" with post=post %}
-      {% empty %}
-        <p style="color:var(--mute)">{% t "blog.empty" %}</p>
-      {% endfor %}
+      <p class="empty" data-filter-empty hidden>{% t "projects.empty" %}</p>
     </div>
-
-    <p data-filter-empty hidden style="color:var(--mute);padding-block:32px;text-align:center">{% t "projects.empty" %}</p>
-  </div>
-</section>
+  </section>
+</div>
 {% endblock %}
