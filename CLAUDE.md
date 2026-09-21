@@ -57,7 +57,10 @@ the sitemap and the Markdown rendering; `test_contact_requests.py` pins the
 honeypot, the throttle, the phone field and the whole Bale bot — a fake in
 place of `messenger.call` is why none of it touches the network;
 `test_request_tracking.py` pins the tracking code, the conversation and the
-status each reply leaves, and the inbox's filters and search.
+status each reply leaves, and the inbox's filters and search;
+`test_visitor_bot.py` pins the visitor's side of the bot — linking a chat,
+every way linking must fail, the updates it receives, and reply and cancel,
+including that a visitor can never press anything that is not theirs.
 
 ## The shape of the project
 
@@ -88,10 +91,11 @@ fact are absent.
 project contains copy — if you find yourself typing a sentence about Mahdi into
 a template, it belongs in a model field instead.
 
-Twelve models: `Profile` (a singleton — `Profile.load()` is the only reader),
+Fourteen models: `Profile` (a singleton — `Profile.load()` is the only reader),
 `Service`, `SkillGroup`/`Skill`, `Tag`, `Project`, `Experience`, `Post`/`PostImage`,
-`Message`/`Reply`. The twelfth, `BotState`, is the one row nobody reads: it is the
-request bot's memory and is documented with it below.
+`Message`/`Reply`. The other three are rows nobody reads: `BotState` is the
+request bot's memory, and `ChatLink`/`ChatLinkToken` are which visitor's chat
+a request reaches. All three are documented with the bot below.
 
 **Mahdi works on-site, hybrid or by the project — never fully remote.** The
 copy states what he does, so the word "remote" appears nowhere a visitor reads.
@@ -471,9 +475,10 @@ Three things guard the endpoint: a secret compared with
 `constant_time_compare`, the route 404ing entirely when no secret is
 configured, and **every action checking the update came from
 `BOT_CHAT_ID`**. A malformed body is answered `200` and dropped — a messenger
-told "error" redelivers the same update forever. `/start` and `/id` are the
-exception that answers anybody: before `DJANGO_BOT_CHAT_ID` is filled in
-nobody is the owner yet, and that is how the id is found.
+told "error" redelivers the same update forever. `/id` (and `/start`, while
+the visitor half below is off) is the exception that answers anybody: before
+`DJANGO_BOT_CHAT_ID` is filled in nobody is the owner yet, and that is how the
+id is found.
 
 **A notification may never cost a request.** The row is committed first and
 announced second, from `transaction.on_commit` on a daemon thread, and
@@ -483,6 +488,60 @@ turns the whole feature off: the form behaves exactly as it did before.
 The admin writes the same two fields the buttons write and calls
 `bot.refresh_later()` afterwards, so the phone and `/admin/` cannot drift.
 Opening a request marks it read, the way any other inbox does.
+
+## The same bot, from the visitor's side
+
+A visitor can have their request's updates sent to their own Bale, and reply
+or cancel from there. **Same bot, same webhook; the role comes from the
+chat.** The owner is `BOT_CHAT_ID` and nothing else; a visitor is a chat a
+`ChatLink` row names, and only for the request that row names. The owner's
+`req:` buttons still check `BOT_CHAT_ID` exactly as before; the visitor's
+`vis:` buttons are routed to `apps/core/visitor.py` before that check and
+look the `ChatLink` up again for *that chat and that request* on every
+press — the id in `callback_data` is a label, never a key. The owner's chat
+never becomes a visitor.
+
+**A bot cannot write to a phone number, so the visitor comes to the bot.**
+The tracking page's «دریافت پاسخ‌ها در بله» is a POST (a link preview must
+not mint anything) that issues a `ChatLinkToken` and redirects to
+`ble.ir/<DJANGO_BOT_USERNAME>?start=<token>`. The token, not the tracking
+code, is what travels through the messenger; it lives
+`BOT_LINK_TOKEN_SECONDS`, is claimed by the first chat that sends
+`/start <token>`, and is spent by the first contact that chat shares. The bot
+asks for the number with a `request_contact` button, and links the chat only
+if **the card is the sender's own** (`contact.user_id == from.id == chat.id`
+— a forwarded card proves nothing, and a card without `user_id` is refused)
+**and its number is the request's**, both through `normalise_phone` (Persian
+digits, `+98`, `0098`, `9…` all become `09…`). A request without a phone
+cannot be linked; the page says so instead of offering the button. `/stop`
+unlinks every request of the chat; the page has its own «disconnect».
+
+**What the visitor is told** is decided in one place: `bot.refresh()` — which
+every owner-side change already passes through, from the bot or the admin —
+calls `visitor.tell_later()`. `ChatLink.told_status`/`told_reply_id` hold
+what the visitor last heard, so a change is sent once, a repaint with nothing
+new sends nothing, and a private note, which changes neither, is never sent.
+The claim is made before sending and undone if the send fails, so a missed
+answer rides along with the next change. The text is in `Message.language`
+with the same `status.*` labels as the tracking page; every bot string for
+visitors is `bale.*` in `apps/core/i18n.py`. Changes the visitor made
+themselves call `visitor_acted()` so they are not echoed back.
+
+**A reply from Bale is a reply** — «پاسخ», then text, then
+`add_reply(from_owner=False)` and `notify_reply`, identical to the page. A
+visitor's `#12 text` is never a note; only the owner files notes. **Cancel
+asks twice** (the second press is `vis:confirm`), then `cancel_by_visitor()`
+archives the request and writes a `Reply` with `event="cancelled"` — a turn in
+the conversation rather than a flag, so it stays on the record after the
+visitor writes again, which reopens the request like any reply.
+`cancelled_by_visitor` (archived, and the last turn is that event) is what
+puts «لغو شده توسط مشتری» in the owner's notice. Reply and cancel share the
+form's one-a-minute throttle, per chat (`ChatLink.last_action_at`).
+
+Sending follows the owner's rules: after commit, on a daemon thread, through
+`bot.guarded`. The half is off — no button on the page, `/start` answers with
+the chat id as before — unless the owner's half is configured **and**
+`DJANGO_BOT_USERNAME` is set.
 
 ## The digital business card
 
@@ -525,7 +584,8 @@ Environment variables are documented in `.env.example`. Only two matter:
 `DJANGO_ALLOWED_HOSTS`. Set `DJANGO_SITE_URL` to the real domain — the canonical
 tag, the `hreflang` alternates, the sitemap, **the QR code** and the bot's own
 webhook address all read it, so a wrong value ships a QR pointing at the wrong
-host. `DJANGO_BOT_*` are the request bot's and are all optional — empty is off.
+host. `DJANGO_BOT_*` are the request bot's and are all optional — empty is off;
+`DJANGO_BOT_USERNAME` alone switches the visitor half on or off.
 
 ## Where this grows, and how
 
@@ -578,6 +638,12 @@ rewritten:
   (`PRAGMA wal_checkpoint(TRUNCATE); PRAGMA journal_mode=DELETE;`), and never
   delete a `-wal` file by hand — it can hold committed rows that are not in
   `db.sqlite3` yet.
+- **Bale's deep link is not in its API reference.** `ble.ir/<bot>?start=<x>`
+  arriving as `/start <x>` is what Bale does in practice and what its own
+  bot course teaches, but the reference at docs.bale.ai does not specify it,
+  nor a payload's length or alphabet. The token is 24 URL-safe characters to
+  stay inside Telegram's limits; if Bale ever drops the payload, the visitor
+  gets the welcome text instead of the phone prompt.
 - **A webhook and `bale poll` are exclusive.** While `setWebhook` is
   registered, `getUpdates` is refused — run `manage.py bale delete-webhook`
   before polling, and `set-webhook` again afterwards (`bale poll` says so when
