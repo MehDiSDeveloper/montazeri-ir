@@ -286,3 +286,82 @@ class LinkingTests(VisitorBotCase):
         self.send(written("/stop", chat_id=VISITOR_CHAT))
         self.assertFalse(ChatLink.objects.exists())
         self.assertIn(first.tracking_code, self.last_to(VISITOR_CHAT)["text"])
+
+
+# ── what the visitor is told ───────────────────────────────────────────────
+@override_settings(**VISITOR)
+class UpdateTests(VisitorBotCase):
+    def setUp(self):
+        super().setUp()
+        self.message = _request()
+        self.link(self.message)
+        self.bale.calls.clear()
+
+    def owner_replies(self, text: str) -> None:
+        self.send(callback(f"req:reply:{self.message.pk}"))
+        self.send(written(text))
+
+    def test_an_answer_reaches_the_visitor_with_the_status_and_the_page(self):
+        self.owner_replies("سلام، فردا تماس می‌گیرم.")
+        told = self.last_to(VISITOR_CHAT)
+        self.assertIn("سلام، فردا تماس می‌گیرم.", told["text"])
+        self.assertIn("پاسخ داده شد", told["text"])
+        page = f"https://montazeri.ir/contact/track/{self.message.tracking_code}/"
+        self.assertIn(page, told["text"])
+        self.assertIn(page, [b.get("url") for row in told["reply_markup"]["inline_keyboard"] for b in row])
+
+    def test_a_status_change_from_a_button_reaches_the_visitor(self):
+        self.send(callback(f"req:reject:{self.message.pk}"))
+        self.assertIn("پذیرفته نشد", self.last_to(VISITOR_CHAT)["text"])
+
+    def test_the_status_is_in_the_visitors_language(self):
+        Message.objects.filter(pk=self.message.pk).update(language="de")
+        self.send(callback(f"req:reject:{self.message.pk}"))
+        text = self.last_to(VISITOR_CHAT)["text"]
+        self.assertIn("Status: Abgelehnt", text)
+        self.assertIn("/de/contact/track/", text)
+
+    def test_a_private_note_is_never_sent(self):
+        self.send(written(f"#{self.message.pk} یادداشت محرمانه"))
+        self.assertEqual(self.to(VISITOR_CHAT), [])
+        self.owner_replies("پاسخ عمومی")
+        self.assertNotIn("محرمانه", self.last_to(VISITOR_CHAT)["text"])
+
+    def test_the_same_change_is_told_once(self):
+        self.send(callback(f"req:reject:{self.message.pk}"))
+        self.send(callback(f"req:reject:{self.message.pk}"))
+        self.assertEqual(len(self.to(VISITOR_CHAT)), 1)
+
+    def test_opening_the_request_in_the_admin_tells_the_visitor_it_is_in_review(self):
+        from django.contrib.auth.models import User
+
+        self.client.force_login(User.objects.create_superuser("admin", "a@b.co", "pw"))
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.get(f"/admin/content/message/{self.message.pk}/change/")
+        self.assertIn("در حال بررسی", self.last_to(VISITOR_CHAT)["text"])
+
+    def test_the_visitors_own_reply_is_not_echoed_back(self):
+        self.client.post(self.message.get_absolute_url(), {"body": "یک سؤال دیگر"})
+        self.send(written(f"#{self.message.pk} یادداشت"))
+        self.assertEqual(self.to(VISITOR_CHAT), [])
+
+    def test_a_request_that_is_not_linked_tells_nobody(self):
+        other = _request()
+        self.send(callback(f"req:reject:{other.pk}"))
+        self.assertEqual(self.to(VISITOR_CHAT), [])
+
+    def test_a_messenger_failure_costs_neither_the_answer_nor_the_next_try(self):
+        real = self.bale
+
+        def flaky(method, payload=None, timeout=None):
+            if str((payload or {}).get("chat_id")) == str(VISITOR_CHAT):
+                raise messenger.BotError("down")
+            return real(method, payload, timeout)
+
+        with patch.object(messenger, "call", flaky):
+            self.owner_replies("پاسخ اول")
+        self.assertTrue(self.message.replies.filter(body="پاسخ اول").exists())
+        self.assertEqual(ChatLink.objects.get().told_reply_id, 0)
+        # Back up: the next change carries the missed answer with it.
+        self.send(callback(f"req:archive:{self.message.pk}"))
+        self.assertIn("پاسخ اول", self.last_to(VISITOR_CHAT)["text"])

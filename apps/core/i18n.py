@@ -298,6 +298,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "✅ Connected. Replies and status changes for request {code} will arrive here.",
         "de": "✅ Verbunden. Antworten und Statusänderungen zu Anfrage {code} kommen ab jetzt hier an.",
     },
+    "bale.update": {"fa": "خبر تازه از درخواست", "en": "News on your request", "de": "Neues zu Ihrer Anfrage"},
+    "bale.open": {"fa": "🔗 صفحهٔ درخواست", "en": "🔗 Open the request", "de": "🔗 Anfrage öffnen"},
     "bale.stopped": {
         "fa": "اتصال قطع شد؛ دیگر پیامی دربارهٔ {codes} اینجا نمی‌آید.",
         "en": "Disconnected: nothing more about {codes} will be sent here.",

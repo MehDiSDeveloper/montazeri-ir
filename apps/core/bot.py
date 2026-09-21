@@ -231,7 +231,10 @@ def _send_notice(pk: int, headline: str = "📩 درخواست تازه") -> Non
 
 def refresh(message: Message) -> None:
     """Repaint the notice of a request whose state changed somewhere else —
-    the admin, or another button press."""
+    the admin, or another button press — and tell the visitor, if their chat
+    is connected. Every change the owner makes passes through here, so this
+    is the one place that decides a visitor hears about it."""
+    visitor.tell_later(message)
     if not (messenger.is_configured() and message.bot_message_id):
         return
     messenger.edit(
@@ -244,7 +247,7 @@ def refresh(message: Message) -> None:
 
 def refresh_later(message: Message) -> None:
     """The same, off the request thread — for the admin's save button."""
-    if messenger.is_configured() and message.bot_message_id:
+    if messenger.is_configured() and (message.bot_message_id or visitor.is_linked(message)):
         in_background(_refresh, message.pk)
 
 

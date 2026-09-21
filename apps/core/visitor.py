@@ -29,8 +29,9 @@ import re
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import override
 
-from apps.content.models import ChatLink, ChatLinkToken, Message, normalise_phone
+from apps.content.models import ChatLink, ChatLinkToken, Message, Profile, normalise_phone
 from apps.core import bot, messenger
 from apps.core.i18n import t
 
@@ -166,6 +167,83 @@ def disconnect(message: Message) -> None:
 
 def _say_stopped(chat_id, lang: str, codes: str) -> None:
     _say(chat_id, "bale.stopped", lang, codes=codes)
+
+
+# ── telling the visitor ────────────────────────────────────────────────────
+# One message caps at 4096 characters; the rest of a long answer is on the page.
+REPLY_CLIP = 3000
+
+
+def is_linked(message: Message) -> bool:
+    return ChatLink.objects.filter(message_id=message.pk).exists()
+
+
+def tell_later(message: Message) -> None:
+    """Send the visitor whatever changed, once the change is committed and
+    off the thread that made it — the same terms the owner's notices get."""
+    if is_enabled() and is_linked(message):
+        pk = message.pk
+        transaction.on_commit(lambda: bot.in_background(tell, pk))
+
+
+def visitor_acted(message: Message) -> None:
+    """The visitor changed the request themselves: nothing to tell them."""
+    link = ChatLink.objects.filter(message_id=message.pk).select_related("message").first()
+    if link is not None:
+        link.mark_told()
+
+
+def tell(pk: int) -> None:
+    """The status in the visitor's words and any answer they have not seen —
+    and nothing else. A private note changes neither, so it is never sent."""
+    if not is_enabled():
+        return
+    link = ChatLink.objects.select_related("message").filter(message_id=pk).first()
+    if link is None:
+        return
+    message = link.message
+    fresh = list(message.replies.filter(from_owner=True, pk__gt=link.told_reply_id).order_by("pk"))
+    if message.status == link.told_status and not fresh:
+        return
+
+    # Claim the change before sending it, so two threads repainting the same
+    # request cannot both announce it.
+    was = {"told_status": link.told_status, "told_reply_id": link.told_reply_id}
+    now = {"told_status": message.status, "told_reply_id": fresh[-1].pk if fresh else link.told_reply_id}
+    if not ChatLink.objects.filter(pk=link.pk, **was).update(**now):
+        return
+    try:
+        messenger.send(update_text(message, fresh), keyboard(message), chat_id=link.chat_id)
+    except Exception:
+        # Not delivered, so not told: the next change will carry this one too.
+        ChatLink.objects.filter(pk=link.pk, **now).update(**was)
+        raise
+
+
+def page_url(message: Message) -> str:
+    return f"{settings.SITE_URL}{message.get_absolute_url()}"
+
+
+def update_text(message: Message, fresh=()) -> str:
+    lang = _lang(message)
+    with override(lang):
+        owner = Profile.load().tr("full_name")
+    lines = [
+        f"🔔 {t('bale.update', lang)} {message.tracking_code}",
+        f"{t('track.status', lang)}: {t('status.' + message.status, lang)}",
+    ]
+    for reply in fresh:
+        body = reply.body.strip()
+        if len(body) > REPLY_CLIP:
+            body = body[:REPLY_CLIP].rstrip() + "…"
+        lines += ["", f"💬 {owner}:" if owner else "💬", body]
+    lines += ["", f"🔗 {page_url(message)}"]
+    return "\n".join(lines)
+
+
+def keyboard(message: Message) -> messenger.Keyboard:
+    lang = _lang(message)
+    return [[{"text": t("bale.open", lang), "url": page_url(message)}]]
 
 
 # ── routing ────────────────────────────────────────────────────────────────

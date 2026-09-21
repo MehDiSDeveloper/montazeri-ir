@@ -208,6 +208,7 @@ def track_detail(request, code: str):
         if form.is_valid() and not throttled:
             if not form.is_spam():
                 message.add_reply(form.cleaned_data["body"], from_owner=False)
+                visitor.visitor_acted(message)
                 bot.notify_reply(message)
                 request.session["contact_last_sent"] = time.time()
             return redirect(f"{reverse('track_detail', args=[canonical])}?sent=1#thread-end")
