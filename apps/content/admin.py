@@ -10,7 +10,13 @@ care: one block per language, a body box big enough to write in, and images
 uploaded on the same page with the Markdown line to paste already built.
 """
 
+import re
+from datetime import timedelta
+
+from django import forms
 from django.contrib import admin
+from django.db.models import Count, Q
+from django.template.defaultfilters import linebreaksbr
 from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
@@ -29,6 +35,7 @@ from .models import (
     Skill,
     SkillGroup,
     Tag,
+    normalise_tracking_code,
 )
 
 LANG_NAMES = {"fa": "فارسی — Persian", "en": "English", "de": "Deutsch — German"}
@@ -145,9 +152,133 @@ class PostAdmin(admin.ModelAdmin):
 STATUS_COLOURS = {
     Message.Status.NEW: "#7fb3ff",
     Message.Status.READ: "#8fd6b4",
+    Message.Status.ANSWERED: "#c7a8f0",
     Message.Status.REJECTED: "#f2a2a2",
     Message.Status.ARCHIVED: "#c9c4bd",
 }
+
+
+def _fa(label: str) -> str:
+    """The Persian half of a choice label: «جدید — new» → «جدید»."""
+    return str(label).split(" — ")[0]
+
+
+class StatusFilter(admin.SimpleListFilter):
+    """Several statuses at once, not one at a time.
+
+    No parameter is the inbox's resting state, «active»: what still needs the
+    owner — new and read — and nothing that is answered, refused or put away.
+    «All» is every status. Each status below is a toggle: clicking one adds
+    it to what is shown or takes it away, so "new + answered" is two clicks.
+
+    The value in the address is `?status=all` or `?status=new,answered`, so a
+    filtered inbox is still a link that can be bookmarked.
+    """
+
+    title = "وضعیت — status"
+    parameter_name = "status"
+    ALL = "all"
+
+    def lookups(self, request, model_admin):
+        return Message.Status.choices  # unused by choices(); keeps has_output() true
+
+    def selected(self) -> set[str]:
+        value = self.value()
+        if value is None:
+            return set(Message.ACTIVE)
+        if value == self.ALL:
+            return set(Message.Status.values)
+        picked = {part for part in value.split(",") if part in Message.Status.values}
+        return picked or set(Message.ACTIVE)
+
+    def queryset(self, request, queryset):
+        if self.value() == self.ALL:
+            return queryset
+        return queryset.filter(status__in=self.selected())
+
+    def _link(self, changelist, statuses: set[str]) -> str:
+        if statuses == set(Message.ACTIVE):
+            return changelist.get_query_string(remove=[self.parameter_name])
+        if statuses == set(Message.Status.values):
+            return changelist.get_query_string({self.parameter_name: self.ALL})
+        ordered = [s for s in Message.Status.values if s in statuses]  # a stable address
+        return changelist.get_query_string({self.parameter_name: ",".join(ordered)})
+
+    def choices(self, changelist):
+        counts = dict(
+            Message.objects.values_list("status").annotate(n=Count("pk")).values_list("status", "n")
+        )
+        selected = self.selected()
+        active_n = sum(counts.get(s, 0) for s in Message.ACTIVE)
+
+        yield {
+            "selected": self.value() is None,
+            "query_string": self._link(changelist, set(Message.ACTIVE)),
+            "display": f"فعال — جدید و خوانده‌شده ({active_n})",
+        }
+        yield {
+            "selected": self.value() == self.ALL,
+            "query_string": self._link(changelist, set(Message.Status.values)),
+            "display": f"همه ({sum(counts.values())})",
+        }
+        for value, label in Message.Status.choices:
+            on = value in selected
+            toggled = selected - {value} if on else selected | {value}
+            yield {
+                "selected": on and self.value() not in (None, self.ALL),
+                # The last one ticked cannot be unticked: an inbox filtered to
+                # nothing is a screen that only looks broken.
+                "query_string": self._link(changelist, toggled or selected),
+                "display": f"{'☑' if on else '☐'} {_fa(label)} ({counts.get(value, 0)})",
+            }
+
+
+class DeadlineFilter(admin.SimpleListFilter):
+    """How close the visitor's own deadline is. Choosing any of these also
+    sorts the list closest-first — see MessageAdmin.get_ordering."""
+
+    title = "مهلت — deadline"
+    parameter_name = "due"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("overdue", "گذشته — overdue"),
+            ("3", "تا ۳ روز — 3 days"),
+            ("7", "تا ۷ روز — a week"),
+            ("30", "تا ۳۰ روز — a month"),
+            ("later", "بیش از ۳۰ روز — later"),
+            ("none", "بدون مهلت — flexible"),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        now = timezone.now()
+        if value == "overdue":
+            return queryset.filter(due_at__lt=now)
+        if value in {"3", "7", "30"}:
+            return queryset.filter(due_at__gte=now, due_at__lte=now + timedelta(days=int(value)))
+        if value == "later":
+            return queryset.filter(due_at__gt=now + timedelta(days=30))
+        if value == "none":
+            return queryset.filter(due_at__isnull=True)
+        return queryset
+
+
+class MessageAdminForm(forms.ModelForm):
+    """Triage plus one box that is not a column: the answer to the visitor.
+    Filled in, it becomes a `Reply` on save and the request «answered»."""
+
+    reply = forms.CharField(
+        required=False,
+        label="پاسخ به درخواست‌کننده — reply",
+        help_text="در صفحهٔ پیگیری او نمایش داده می‌شود و وضعیت «پاسخ داده شده» می‌شود. "
+        "Shown on the visitor's tracking page; the request becomes «answered».",
+        widget=forms.Textarea(attrs={"rows": 5, "dir": "auto", "style": "width:100%;max-width:48rem;line-height:1.8"}),
+    )
+
+    class Meta:
+        model = Message
+        fields = ("status", "notes")
 
 
 @admin.register(Message)
@@ -156,30 +287,87 @@ class MessageAdmin(admin.ModelAdmin):
 
     What a visitor wrote is read-only — a request is a record, and editing it
     would make the notice already sitting in Bale a lie. What is editable is
-    the triage: the status and the private notes, the same two things the
-    bot's buttons write, so neither side is the special one.
+    the triage — the status and the private notes, the same two things the
+    bot's buttons write — and the conversation, which only ever grows.
+
+    Finding a request: the search box takes a name, a company, an email or a
+    phone, a tracking code (with or without the dash), `#12`, any word from
+    the request or its replies, or a request type by name («مشاوره», «project»).
+    The status filter decides which states the search looks in; the deadline
+    filter narrows by how close the visitor's own deadline is.
     """
 
-    list_display = ("state", "name", "reach", "subject", "when", "note_preview")
-    list_display_links = ("name",)
-    list_filter = ("status", "language")
-    search_fields = ("name", "email", "phone", "subject", "body", "notes")
+    form = MessageAdminForm
+    list_display = ("state", "who", "reach", "kind_label", "deadline", "subject", "turns", "when", "note_preview")
+    list_display_links = ("who",)
+    list_filter = (StatusFilter, DeadlineFilter, "kind", "language")
+    search_fields = (
+        "name", "company", "email", "phone", "subject", "body", "notes", "tracking_code", "replies__body",
+    )
+    search_help_text = (
+        "نام، شرکت، ایمیل، تلفن، کد پیگیری، ‎#شماره، نوع درخواست یا هر کلمه از متن — "
+        "در وضعیت‌هایی که از فیلتر کنار صفحه انتخاب شده‌اند (پیش‌فرض: فعال)."
+    )
     date_hierarchy = "created_at"
     actions = ("mark_read", "mark_rejected", "mark_archived")
-    readonly_fields = ("name", "email", "phone", "subject", "body", "language", "created_at", "read_at", "notified_at")
+    readonly_fields = (
+        "name", "company", "email", "phone", "kind", "timeline", "deadline_full", "subject", "body",
+        "tracking", "conversation", "language", "created_at", "read_at", "notified_at",
+    )
     fieldsets = [
+        ("What was sent", {"fields": (
+            ("name", "company"), ("email", "phone"), ("kind", "timeline", "deadline_full"), "subject", "body",
+        )}),
+        ("Conversation", {"fields": ("tracking", "conversation", "reply")}),
         ("Triage", {"fields": ("status", "notes")}),
-        ("What was sent", {"fields": ("name", "email", "phone", "subject", "body")}),
         ("When", {"fields": ("language", "created_at", "read_at", "notified_at"), "classes": ["collapse"]}),
     ]
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(reply_count=Count("replies"))
+
+    def get_ordering(self, request):
+        # Filtering by deadline is asking "what is due first", so answer it in
+        # that order. A column the owner clicked (?o=) still wins.
+        if request.GET.get(DeadlineFilter.parameter_name):
+            return ("due_at", "-created_at")
+        return super().get_ordering(request)
+
+    def get_search_results(self, request, queryset, search_term):
+        found, may_have_duplicates = super().get_search_results(request, queryset, search_term)
+        term = search_term.strip()
+        if not term:
+            return found, may_have_duplicates
+
+        extra = Q()
+        numbered = re.fullmatch(r"#?(\d+)", term)
+        if numbered:
+            extra |= Q(pk=int(numbered.group(1)))
+        code = normalise_tracking_code(term)
+        if code:
+            extra |= Q(tracking_code=code)
+        if len(term) >= 3:
+            kinds = [value for value, label in Message.Kind.choices if term.lower() in label.lower()]
+            if kinds:
+                extra |= Q(kind__in=kinds)
+        if extra:
+            found = found | queryset.filter(extra)
+        return found, may_have_duplicates
+
+    # ── columns ────────────────────────────────────────────────────────────
     @admin.display(description="status", ordering="status")
     def state(self, obj):
         return format_html(
             '<b style="color:{}">●</b> {}',
             STATUS_COLOURS.get(obj.status, "#999"),
-            obj.get_status_display().split(" — ")[0],
+            _fa(obj.get_status_display()),
         )
+
+    @admin.display(description="name · company", ordering="name")
+    def who(self, obj):
+        if not obj.company:
+            return obj.name
+        return format_html('{}<br><small style="color:var(--body-quiet-color)">{}</small>', obj.name, obj.company)
 
     @admin.display(description="reach")
     def reach(self, obj):
@@ -188,6 +376,32 @@ class MessageAdmin(admin.ModelAdmin):
         if obj.phone:
             parts.append(format_html('<a href="tel:{}" dir="ltr">{}</a>', obj.phone, obj.phone))
         return format_html_join(mark_safe("<br>"), "{}", ((p,) for p in parts))
+
+    @admin.display(description="type", ordering="kind")
+    def kind_label(self, obj):
+        return _fa(obj.get_kind_display())
+
+    @admin.display(description="deadline", ordering="due_at")
+    def deadline(self, obj):
+        days = obj.days_left()
+        if days is None:
+            return format_html('<span style="color:var(--body-quiet-color)">{}</span>', _fa(obj.get_timeline_display()))
+        if days < 0:
+            text, colour = f"{-days} روز گذشته", "#d9534f"
+        elif days == 0:
+            text, colour = "امروز", "#e8871e"
+        elif days <= 3:
+            text, colour = f"{days} روز مانده", "#e8871e"
+        else:
+            text, colour = f"{days} روز مانده", ""
+        # A deadline stops being urgent once the request is no longer active.
+        if not obj.is_active:
+            colour = "var(--body-quiet-color)"
+        return format_html('<span style="color:{};font-weight:600;white-space:nowrap">{}</span>', colour or "inherit", text)
+
+    @admin.display(description="replies", ordering="reply_count")
+    def turns(self, obj):
+        return f"💬 {obj.reply_count}" if obj.reply_count else ""
 
     @admin.display(description="received", ordering="created_at")
     def when(self, obj):
@@ -198,6 +412,46 @@ class MessageAdmin(admin.ModelAdmin):
         text = obj.notes.strip().splitlines()
         return f"{text[-1][:60]}…" if text else ""
 
+    # ── the change page ────────────────────────────────────────────────────
+    @admin.display(description="deadline")
+    def deadline_full(self, obj):
+        if obj.due_at is None:
+            return "—"
+        return format_html("{} &nbsp;·&nbsp; {}", obj.due_at.strftime("%Y-%m-%d"), self.deadline(obj))
+
+    @admin.display(description="tracking code")
+    def tracking(self, obj):
+        return format_html(
+            '<code style="font-size:1.1em;letter-spacing:.08em;user-select:all">{}</code> &nbsp; '
+            '<a href="{}" target="_blank" rel="noopener">صفحهٔ پیگیری — the visitor\'s page ↗</a>',
+            obj.tracking_code,
+            obj.get_absolute_url(),
+        )
+
+    @admin.display(description="conversation")
+    def conversation(self, obj):
+        replies = list(obj.replies.all())
+        if not replies:
+            return "هنوز پاسخی رد و بدل نشده — no replies yet."
+        turns = []
+        for reply in replies:
+            if reply.from_owner:
+                who, style = "شما — you", "background:var(--selected-bg);margin-inline-start:0;margin-inline-end:auto"
+            else:
+                who, style = obj.name, "background:var(--darkened-bg);margin-inline-start:auto;margin-inline-end:0"
+            turns.append((style, who, reply.created_at.strftime("%Y-%m-%d %H:%M"), linebreaksbr(reply.body)))
+        return format_html(
+            '<div style="display:grid;gap:10px;max-width:48rem">{}</div>',
+            format_html_join(
+                "",
+                '<div style="{};max-width:85%;padding:10px 14px;border-radius:12px;'
+                'border:1px solid var(--hairline-color)"><div style="font-size:.85em;'
+                'color:var(--body-quiet-color);margin-bottom:4px"><b>{}</b> · {}</div>'
+                '<div dir="auto" style="line-height:1.8">{}</div></div>',
+                turns,
+            ),
+        )
+
     def has_add_permission(self, request):
         return False  # a request arrives from the form or it does not exist
 
@@ -206,7 +460,10 @@ class MessageAdmin(admin.ModelAdmin):
         if "status" in form.changed_data:
             obj.read_at = None if obj.is_new else (obj.read_at or timezone.now())
         super().save_model(request, obj, form, change)
-        if {"status", "notes"} & set(form.changed_data):
+        answer = (form.cleaned_data.get("reply") or "").strip()
+        if answer:
+            obj.add_reply(answer, from_owner=True)
+        if answer or {"status", "notes"} & set(form.changed_data):
             # Repaint the notice in Bale, so the phone and this screen never
             # disagree about where a request stands.
             bot.refresh_later(obj)

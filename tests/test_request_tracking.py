@@ -241,3 +241,93 @@ class BotReplyTests(TestCase):
         bot.handle_update(callback(f"req:reply:{self.message.pk}", update_id=1))
         bot.handle_update(written(f"#{self.message.pk} یادداشت", update_id=2))
         self.assertEqual(self.message.replies.count(), 0)
+
+
+# ── the inbox ──────────────────────────────────────────────────────────────
+@override_settings(**BOT)
+class InboxSearchTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        User.objects.create_superuser("mahdi", "m@example.com", "pw-for-tests-only")
+        now = timezone.now()
+        cls.new = _request(name="علی", company="آلفا", kind="project")
+        cls.read = _request(name="مریم", kind="consult", status="read")
+        cls.answered = _request(name="رضا", status="answered")
+        cls.rejected = _request(name="نگار", status="rejected")
+        cls.archived = _request(name="کاوه", status="archived")
+        cls.overdue = _request(name="دیرکرد", due_at=now - timedelta(days=2))
+        cls.soon = _request(name="نزدیک", due_at=now + timedelta(days=2))
+        cls.later = _request(name="دور", due_at=now + timedelta(days=20))
+
+    def setUp(self):
+        patcher = patch.object(messenger, "call", FakeBale())
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.client.login(username="mahdi", password="pw-for-tests-only")
+
+    def listed(self, query: str = "") -> set[str]:
+        response = self.client.get(f"/admin/content/message/{query}")
+        self.assertEqual(response.status_code, 200)
+        return {m.name for m in response.context["cl"].result_list}
+
+    def test_the_inbox_opens_on_active_requests(self):
+        names = self.listed()
+        self.assertIn("علی", names)
+        self.assertIn("مریم", names)
+        self.assertFalse({"رضا", "نگار", "کاوه"} & names)
+
+    def test_all_is_every_status(self):
+        self.assertTrue({"رضا", "نگار", "کاوه", "علی"} <= self.listed("?status=all"))
+
+    def test_several_statuses_at_once(self):
+        self.assertEqual(self.listed("?status=answered,archived"), {"رضا", "کاوه"})
+
+    def test_a_status_link_toggles_one_status_in_or_out(self):
+        response = self.client.get("/admin/content/message/")
+        links = {c["display"].split(" (")[0]: c["query_string"]
+                 for spec in response.context["cl"].filter_specs if getattr(spec, "parameter_name", "") == "status"
+                 for c in spec.choices(response.context["cl"])}
+        self.assertEqual(links["☐ پاسخ داده شده"], "?status=new%2Cread%2Canswered")
+        self.assertEqual(links["☑ جدید"], "?status=read")
+
+    def test_search_by_person_or_company(self):
+        self.assertEqual(self.listed("?q=علی"), {"علی"})
+        self.assertEqual(self.listed("?q=آلفا"), {"علی"})
+
+    def test_search_by_request_type_by_name(self):
+        self.assertEqual(self.listed("?q=مشاوره"), {"مریم"})
+        self.assertEqual(self.listed("?q=project"), {"علی"})
+
+    def test_search_by_tracking_code_however_typed(self):
+        typed = self.new.tracking_code.lower().replace("-", "")
+        self.assertEqual(self.listed(f"?q={typed}"), {"علی"})
+
+    def test_search_looks_only_in_the_chosen_statuses(self):
+        self.assertEqual(self.listed("?q=رضا"), set())
+        self.assertEqual(self.listed("?q=رضا&status=all"), {"رضا"})
+
+    def test_search_reaches_the_conversation(self):
+        self.new.replies.create(body="بودجه‌ی تقریبی")
+        self.assertEqual(self.listed("?q=بودجه‌ی"), {"علی"})
+
+    def test_the_deadline_filter_and_its_closest_first_order(self):
+        self.assertEqual(self.listed("?due=overdue"), {"دیرکرد"})
+        self.assertEqual(self.listed("?due=3"), {"نزدیک"})
+        response = self.client.get("/admin/content/message/?due=30")
+        self.assertEqual([m.name for m in response.context["cl"].result_list], ["نزدیک", "دور"])
+
+    def test_answering_from_the_admin_reaches_the_visitor(self):
+        self.client.post(
+            f"/admin/content/message/{self.read.pk}/change/",
+            {"status": "read", "notes": "", "reply": "هفتهٔ بعد شروع می‌کنیم."},
+        )
+        self.read.refresh_from_db()
+        self.assertEqual(self.read.status, Message.Status.ANSWERED)
+        page = self.client.get(f"/contact/track/{self.read.tracking_code}/")
+        self.assertContains(page, "هفتهٔ بعد شروع می‌کنیم.")
+
+    def test_the_change_page_shows_the_conversation_and_the_visitors_link(self):
+        self.new.add_reply("سلام", from_owner=True)
+        response = self.client.get(f"/admin/content/message/{self.new.pk}/change/")
+        self.assertContains(response, "سلام")
+        self.assertContains(response, f"/contact/track/{self.new.tracking_code}/")
