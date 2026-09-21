@@ -55,7 +55,9 @@ unchanged later. `test_geo_language.py` pins the redirect; `test_pages.py` pins
 every route in all three languages, the services offer, per-language post SEO,
 the sitemap and the Markdown rendering; `test_contact_requests.py` pins the
 honeypot, the throttle, the phone field and the whole Bale bot — a fake in
-place of `messenger.call` is why none of it touches the network.
+place of `messenger.call` is why none of it touches the network;
+`test_request_tracking.py` pins the tracking code, the conversation and the
+status each reply leaves, and the inbox's filters and search.
 
 ## The shape of the project
 
@@ -86,9 +88,9 @@ fact are absent.
 project contains copy — if you find yourself typing a sentence about Mahdi into
 a template, it belongs in a model field instead.
 
-Eleven models: `Profile` (a singleton — `Profile.load()` is the only reader),
+Twelve models: `Profile` (a singleton — `Profile.load()` is the only reader),
 `Service`, `SkillGroup`/`Skill`, `Tag`, `Project`, `Experience`, `Post`/`PostImage`,
-`Message`. The eleventh, `BotState`, is the one row nobody reads: it is the
+`Message`/`Reply`. The twelfth, `BotState`, is the one row nobody reads: it is the
 request bot's memory and is documented with it below.
 
 **Mahdi works on-site, hybrid or by the project — never fully remote.** The
@@ -376,7 +378,12 @@ enough, and it costs the reader nothing.
 A spam submission is answered **with the same redirect a real one gets**. A bot
 that can tell the difference will tune around the trap.
 
-The fields are name, email, **an optional phone number**, subject and message.
+The fields are name, an optional company, email, **an optional phone
+number**, the request type (`Message.Kind`), the visitor's timeline
+(`Message.Timeline`), subject and message. Type and timeline are radio chips
+and optional too — nothing picked is "other" and "flexible". The timeline is
+turned into a real date once, on arrival: `due_at` is `created_at` plus the
+timeline's days, which is what the inbox sorts and filters by.
 The phone is optional on purpose — most Iranian clients expect to be called
 back, and requiring a number costs the replies of the ones who do not want to
 be. `ContactForm.clean_phone` translates Persian and Arabic-Indic digits to
@@ -392,10 +399,38 @@ already a channel that reaches a phone.
 
 A message that only lands in `/admin/` is read when the admin is next opened,
 which for a project enquiry is too late. So **`Message` carries a `status`**,
-not a handled flag: `new → read`, and from there `rejected` or `archived`.
-`set_status()` stamps `read_at` the first time a request is looked at and
-clears it again when it is put back to new. `notes` is a private, dated log —
-appended to, never replaced, and rendered nowhere a visitor can reach.
+not a handled flag: `new → read → answered`, and at any point `rejected` or
+`archived`. **Active** (`Message.ACTIVE`) is new and read — what still needs
+the owner. `set_status()` stamps `read_at` the first time a request is looked
+at and clears it again when it is put back to new. `notes` is a private, dated
+log — appended to, never replaced, and rendered nowhere a visitor can reach.
+
+**A request is a conversation.** Each one has a `tracking_code` (`XXXX-XXXX`
+from an alphabet without 0/O/1/I/L), shown once on the thank-you page — from
+the session, never in the redirect's URL — and it opens
+`/contact/track/<code>/`, where both sides add `Reply` rows under the original
+message, as many as it takes. Replies are never edited or deleted; a change is
+another reply. **`Message.add_reply()` is the one place a reply's consequence
+lives**: from the owner it makes the request `answered`; from the visitor it
+makes it `new` again from *any* state — refused and archived included — and
+`bot.notify_reply` sends a fresh notice, because a repaint makes no sound.
+The owner answers from the admin's reply box or the bot's «پاسخ» button.
+
+The tracking pages are `noindex, nofollow` and disallowed in `robots.txt`; the
+URL is the key, like a private link. Guessing is throttled: wrong codes from
+one address are counted in the cache (`TRACK_LOOKUP_LIMIT` per
+`TRACK_LOOKUP_WINDOW_SECONDS`) and then the lookup answers 429. The cache is
+the default per-process one, so the real limit is that times the gunicorn
+workers — still hopeless for a guesser against 31⁸ codes. The reply box shares
+the contact form's honeypot and throttle.
+
+**The inbox** (`MessageAdmin`) opens on active requests. The status filter is
+multi-select — each status is a toggle, `?status=new,answered`, plus «همه»
+(`?status=all`) — and it scopes the search. The search box takes a name,
+company, email, phone, tracking code (typed any way), `#12`, a word from the
+request or any reply, or a request type by name («مشاوره», "project"). The
+deadline filter (overdue / 3 / 7 / 30 days / later / flexible) also sorts
+closest-first unless a column was clicked.
 
 Three files, each with one job:
 
@@ -413,13 +448,16 @@ Three files, each with one job:
   text as well, for a client that will not draw one.
 - **`apps/content/models.py: BotState`** — a singleton holding the last
   `update_id` handled, so a webhook retry can never archive a request twice,
-  and which request a note is being written for, because «یادداشت» is a button
-  press first and a text message second.
+  and which request a note (or, with `awaiting_reply`, an answer) is being
+  written for, because «یادداشت» and «پاسخ» are a button press first and a
+  text message second.
 
 **A note can be filed three ways**, in order of how explicit the owner was:
 `#12 text`, a reply to a notice (its `#12` is parsed back out), or the request
 whose «یادداشت» button was pressed in the last `BOT_NOTE_WINDOW_SECONDS`.
-Nothing matches, and the bot says how instead of guessing.
+Nothing matches, and the bot says how instead of guessing. **An answer to
+the visitor only ever follows the «پاسخ» button** — a `#12` or a swiped
+notice is always a private note, because an answer goes out to somebody.
 
 **The transport is a webhook**, at `/bot/<secret>/` outside `i18n_patterns`
 with the other machine endpoints. Long-polling would need a second process and

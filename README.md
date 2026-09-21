@@ -51,7 +51,8 @@ address for a webhook. To run exactly what production runs, bypass it:
 | `/blog/`, `/blog/<slug>/` | Writing — notes, things learned, things being chewed on |
 | `/about/` | The long version, plus the full timeline |
 | `/resume/` | The same data as a document — the print stylesheet makes it a real PDF |
-| `/contact/` | Direct channels that copy with one tap, plus a form — name, email, an optional phone number, subject, message |
+| `/contact/` | Direct channels that copy with one tap, plus a form — name, company, email, an optional phone number, request type, timeline, subject, message |
+| `/contact/track/` | Follow a request with its tracking code: its status, the whole conversation, and a box to write back |
 | `/card/` | The digital business card: QR, vCard download, share |
 | `/card/montazeri.vcf` | A real contact file a phone can save |
 | `/en/…`, `/de/…` | The same site, English and German |
@@ -75,8 +76,13 @@ Sign in at `/admin/` and:
 - **Posts** — Markdown in the `body` fields. Reading time is counted, not typed.
 - **Skill groups / Skills** — `is_primary` marks the ones worth emphasising.
 - **Messages** — the requests people sent through the contact form. What they
-  wrote is read-only; what you set is the **status** (new → read → rejected or
-  archived) and the private **notes**. Opening one marks it read.
+  wrote is read-only; what you set is the **status** (new → read → answered,
+  or rejected / archived) and the private **notes**, and you answer in the
+  **reply** box — the answer appears on the visitor's tracking page. When they
+  write back, the request is new again. The list opens on active requests
+  (new + read); tick several statuses or «همه» in the filter, search by name,
+  company, tracking code, `#12` or request type, and filter or sort by how
+  close the visitor's deadline is. Opening one marks it read.
 
 Every text field appears three times: `_fa`, `_en`, `_de`. **Only Persian is
 required** — an empty English or German field falls back to Persian rather than
@@ -118,12 +124,15 @@ inside Iran, though both work: they speak the same bot API and
 The notice carries **every field**, so the phone screen is enough to decide,
 and the buttons under it set the same status the admin sets:
 
-> 👁 خوانده شد · 📝 یادداشت · ❌ رد درخواست · 🗄 بایگانی · 🔗 رسیدگی در پنل
+> 💬 پاسخ به درخواست‌کننده · 👁 خوانده شد · 📝 یادداشت · ❌ رد درخواست · 🗄 بایگانی · 🔗 رسیدگی در پنل
 
 Whatever is already true offers its undo instead of itself, and the notice is
 repainted in place after every change — from the phone *or* from `/admin/` —
 so the two can never disagree. To leave a note, press «یادداشت» and send the
-text, reply to a notice, or send `#12 the note` at any time.
+text, reply to a notice, or send `#12 the note` at any time. To answer the
+visitor, press «پاسخ» and send the text: it lands on their tracking page and
+the request becomes «پاسخ داده شده». When they write back, a fresh notice
+arrives.
 
 Setting it up takes about five minutes:
 
