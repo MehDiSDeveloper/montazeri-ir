@@ -25,6 +25,7 @@ Off unless the owner's half is configured and `BOT_USERNAME` is set.
 from __future__ import annotations
 
 import re
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
@@ -242,8 +243,135 @@ def update_text(message: Message, fresh=()) -> str:
 
 
 def keyboard(message: Message) -> messenger.Keyboard:
+    """Reply always — writing reopens a closed request — and cancel while
+    there is still something to cancel."""
+    lang, pk = _lang(message), message.pk
+    actions = [{"text": t("bale.reply", lang), "callback_data": f"vis:reply:{pk}"}]
+    if message.can_be_cancelled:
+        actions.append({"text": t("bale.cancel", lang), "callback_data": f"vis:cancel:{pk}"})
+    return [actions, [{"text": t("bale.open", lang), "url": page_url(message)}]]
+
+
+# ── the visitor's turn: a reply, or a cancellation ─────────────────────────
+CALLBACK = re.compile(r"^vis:(reply|cancel|confirm|keep):(\d+)$")
+
+
+def _chat_lang(chat_id) -> str:
+    """The language of some request this chat is linked to, for a toast that
+    has no request of its own to speak for."""
+    link = ChatLink.objects.filter(chat_id=str(chat_id)).select_related("message").first()
+    return _lang(link.message) if link else settings.LANGUAGE_CODE
+
+
+def _too_soon(chat_id) -> bool:
+    """One reply or cancellation a minute per chat — the site form's rule."""
+    since = timezone.now() - timedelta(seconds=settings.CONTACT_RATE_LIMIT_SECONDS)
+    return ChatLink.objects.filter(chat_id=str(chat_id), last_action_at__gt=since).exists()
+
+
+def _acted(link: ChatLink, **fields) -> None:
+    link.last_action_at, link.awaiting_reply_since = timezone.now(), None
+    ChatLink.objects.filter(pk=link.pk).update(last_action_at=link.last_action_at, awaiting_reply_since=None, **fields)
+    link.mark_told()
+
+
+def on_button(query: dict) -> None:
+    """A button under a visitor's update. The request named in it counts
+    only if this very chat is linked to it — checked here, every time."""
+    notice = query.get("message") or {}
+    chat_id = str((notice.get("chat") or {}).get("id") or "")
+    callback_id = str(query.get("id") or "")
+
+    match = CALLBACK.match(query.get("data") or "")
+    link = (
+        ChatLink.objects.select_related("message").filter(message_id=int(match.group(2)), chat_id=chat_id).first()
+        if match and chat_id
+        else None
+    )
+    if link is None:
+        messenger.answer(callback_id, t("bale.not_yours", _chat_lang(chat_id)))
+        return
+
+    action, message = match.group(1), link.message
+    lang, code = _lang(message), message.tracking_code
+
+    if action == "reply":
+        ChatLink.objects.filter(pk=link.pk).update(awaiting_reply_since=timezone.now())
+        messenger.answer(callback_id)
+        _say(chat_id, "bale.reply_prompt", lang, code=code)
+        return
+
+    if action == "keep":
+        messenger.answer(callback_id)
+        _repaint(chat_id, notice, t("bale.kept", lang))
+        return
+
+    if not message.can_be_cancelled:
+        messenger.answer(callback_id, t("bale.closed", lang))
+        return
+
+    if action == "cancel":
+        # The first press only asks. Cancelling is the one thing here a
+        # visitor cannot take back with a button.
+        messenger.answer(callback_id)
+        messenger.send(
+            t("bale.cancel_confirm", lang).format(code=code),
+            [[
+                {"text": t("bale.cancel_yes", lang), "callback_data": f"vis:confirm:{message.pk}"},
+                {"text": t("bale.cancel_no", lang), "callback_data": f"vis:keep:{message.pk}"},
+            ]],
+            chat_id=chat_id,
+        )
+        return
+
+    # action == "confirm"
+    if _too_soon(chat_id):
+        messenger.answer(callback_id, t("bale.too_fast", lang))
+        return
+    message.cancel_by_visitor()
+    _acted(link)
+    bot.notify_cancelled(message)
+    messenger.answer(callback_id)
+    _repaint(chat_id, notice, t("bale.cancelled", lang).format(code=code))
+
+
+def _repaint(chat_id: str, notice: dict, text: str) -> None:
+    """Turn the question into its answer, buttons gone — so an old «yes»
+    cannot be pressed again later. Best effort: the decision already stands."""
+    if notice.get("message_id"):
+        bot.guarded(messenger.edit, chat_id, str(notice["message_id"]), text)
+
+
+def reply(incoming: dict, text: str) -> None:
+    """A plain text from a visitor: their answer, if they pressed «پاسخ»."""
+    chat_id = str((incoming.get("chat") or {}).get("id") or "")
+    since = timezone.now() - timedelta(seconds=settings.BOT_NOTE_WINDOW_SECONDS)
+    link = (
+        ChatLink.objects.select_related("message")
+        .filter(chat_id=chat_id, awaiting_reply_since__gte=since)
+        .order_by("-awaiting_reply_since")
+        .first()
+    )
+    if link is None:
+        linked = ChatLink.objects.filter(chat_id=chat_id).exists()
+        if linked:
+            _say(chat_id, "bale.reply_hint", _chat_lang(chat_id))
+        else:
+            messenger.send(_everyone("bale.welcome"), chat_id=chat_id)
+        return
+
+    message = link.message
     lang = _lang(message)
-    return [[{"text": t("bale.open", lang), "url": page_url(message)}]]
+    if _too_soon(chat_id):
+        _say(chat_id, "bale.too_fast", lang)
+        return  # still waiting: the same text can be sent again in a minute
+
+    # Exactly what a reply from the tracking page does: the request is «new»
+    # again, from whatever state, and the owner hears about it.
+    message.add_reply(text[:4000], from_owner=False)
+    _acted(link)
+    bot.notify_reply(message)
+    _say(chat_id, "bale.reply_saved", lang)
 
 
 # ── routing ────────────────────────────────────────────────────────────────
@@ -257,5 +385,7 @@ def on_text(incoming: dict, text: str) -> None:
         start(chat_id, rest)
     elif command == "/stop":
         stop(chat_id)
-    else:
+    elif command.startswith("/"):
         messenger.send(_everyone("bale.welcome"), chat_id=str(chat_id))
+    else:
+        reply(incoming, text)

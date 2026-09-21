@@ -107,11 +107,16 @@ def _thread(message: Message) -> list[str]:
         lines.append("…")
     for reply in replies[-THREAD_TURNS:]:
         who = "شما" if reply.from_owner else (message.name or "درخواست‌کننده")
-        body = reply.body.strip()
+        body = "🚫 درخواست را لغو کرد." if reply.event == reply.Event.CANCELLED else reply.body.strip()
         if len(body) > THREAD_CLIP:
             body = body[:THREAD_CLIP].rstrip() + "…"
         lines += [f"— {who} · {_when(reply.created_at)}:", body]
     return lines
+
+
+def _status(message: Message) -> str:
+    label = STATUS_LABEL.get(message.status, message.status)
+    return f"{label} — 🚫 لغو شده توسط مشتری" if message.cancelled_by_visitor else label
 
 
 def notice_text(message: Message, headline: str = "📩 درخواست تازه") -> str:
@@ -119,7 +124,7 @@ def notice_text(message: Message, headline: str = "📩 درخواست تازه"
     point is to be able to decide without opening anything."""
     lines = [
         f"{headline} #{message.pk} — {_host()}",
-        f"وضعیت: {STATUS_LABEL.get(message.status, message.status)}",
+        f"وضعیت: {_status(message)}",
         "",
         f"نام: {message.name or EMPTY}",
         f"شرکت: {message.company or EMPTY}",
@@ -131,6 +136,7 @@ def notice_text(message: Message, headline: str = "📩 درخواست تازه"
         f"زبان: {LANGUAGE_LABEL.get(message.language, message.language or EMPTY)}",
         f"زمان: {_when(message.created_at)}",
         f"کد پیگیری: {message.tracking_code}",
+        *(["📲 بلهٔ درخواست‌کننده وصل است"] if visitor.is_enabled() and visitor.is_linked(message) else []),
         "",
         "پیام:",
         message.body.strip(),
@@ -213,6 +219,15 @@ def notify_reply(message: Message) -> None:
         return
     pk = message.pk
     transaction.on_commit(lambda: in_background(_send_notice, pk, "💬 پاسخ تازه از درخواست‌کننده"))
+
+
+def notify_cancelled(message: Message) -> None:
+    """The visitor withdrew the request from their chat. Fresh, like a reply:
+    it is news, not a repaint."""
+    if not messenger.is_configured():
+        return
+    pk = message.pk
+    transaction.on_commit(lambda: in_background(_send_notice, pk, "🚫 درخواست‌کننده درخواست را لغو کرد"))
 
 
 def _send_notice(pk: int, headline: str = "📩 درخواست تازه") -> None:
@@ -300,6 +315,13 @@ def handle_update(update: dict) -> None:
 def _on_button(state: BotState, query: dict) -> None:
     origin = ((query.get("message") or {}).get("chat") or {}).get("id")
     callback_id = str(query.get("id") or "")
+
+    # A visitor's buttons carry their own prefix and are checked against the
+    # visitor's link in visitor.py; they can never reach the owner's actions
+    # below, which still answer to BOT_CHAT_ID and nobody else.
+    if (query.get("data") or "").startswith("vis:") and visitor.is_enabled():
+        visitor.on_button(query)
+        return
 
     if not messenger.owns_chat(origin):
         messenger.answer(callback_id, "این دکمه برای شما نیست.")

@@ -300,6 +300,56 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "bale.update": {"fa": "خبر تازه از درخواست", "en": "News on your request", "de": "Neues zu Ihrer Anfrage"},
     "bale.open": {"fa": "🔗 صفحهٔ درخواست", "en": "🔗 Open the request", "de": "🔗 Anfrage öffnen"},
+    "bale.reply": {"fa": "💬 پاسخ", "en": "💬 Reply", "de": "💬 Antworten"},
+    "bale.cancel": {"fa": "✖️ لغو درخواست", "en": "✖️ Cancel request", "de": "✖️ Anfrage zurückziehen"},
+    "bale.reply_prompt": {
+        "fa": "متن پاسخ به درخواست {code} را بنویسید و بفرستید.",
+        "en": "Write your reply to request {code} and send it.",
+        "de": "Schreiben Sie Ihre Antwort zu Anfrage {code} und senden Sie sie ab.",
+    },
+    "bale.reply_saved": {
+        "fa": "✅ پاسخ شما ثبت شد و به دستم رسید.",
+        "en": "✅ Your reply is saved and on its way to me.",
+        "de": "✅ Ihre Antwort ist gespeichert und bei mir angekommen.",
+    },
+    "bale.reply_hint": {
+        "fa": "برای پاسخ، اول دکمهٔ «پاسخ» را زیر یکی از پیام‌های درخواست بزنید و بعد متن را بفرستید.",
+        "en": "To reply, first press «Reply» under one of the request's messages, then send your text.",
+        "de": "Tippen Sie zum Antworten zuerst auf «Antworten» unter einer Nachricht zur Anfrage und senden Sie dann Ihren Text.",
+    },
+    "bale.cancel_confirm": {
+        "fa": "درخواست {code} لغو شود؟ درخواست بسته می‌شود؛ اگر بعداً دوباره بنویسید، باز می‌شود.",
+        "en": "Cancel request {code}? It will be closed; writing again later reopens it.",
+        "de": "Anfrage {code} zurückziehen? Sie wird geschlossen; eine neue Nachricht öffnet sie wieder.",
+    },
+    "bale.cancel_yes": {"fa": "بله، لغو شود", "en": "Yes, cancel it", "de": "Ja, zurückziehen"},
+    "bale.cancel_no": {"fa": "نه، بماند", "en": "No, keep it", "de": "Nein, behalten"},
+    "bale.cancelled": {
+        "fa": "درخواست {code} لغو شد. اگر دوباره نوشتید، باز می‌شود.",
+        "en": "Request {code} is cancelled. Writing again reopens it.",
+        "de": "Anfrage {code} ist zurückgezogen. Eine neue Nachricht öffnet sie wieder.",
+    },
+    "bale.kept": {"fa": "باشد، درخواست سر جایش ماند.", "en": "OK, the request stays open.", "de": "Gut, die Anfrage bleibt offen."},
+    "bale.closed": {
+        "fa": "این درخواست دیگر باز نیست.",
+        "en": "This request is no longer open.",
+        "de": "Diese Anfrage ist nicht mehr offen.",
+    },
+    "bale.too_fast": {
+        "fa": "کمی صبر کنید؛ هر دقیقه یک پیام.",
+        "en": "Please wait a moment — one message a minute.",
+        "de": "Bitte warten Sie kurz – eine Nachricht pro Minute.",
+    },
+    "bale.not_yours": {
+        "fa": "این درخواست به این گفت‌وگو وصل نیست.",
+        "en": "This request is not connected to this chat.",
+        "de": "Diese Anfrage ist nicht mit diesem Chat verbunden.",
+    },
+    "track.cancelled_event": {
+        "fa": "درخواست را لغو کردید.",
+        "en": "You cancelled the request.",
+        "de": "Sie haben die Anfrage zurückgezogen.",
+    },
     "bale.stopped": {
         "fa": "اتصال قطع شد؛ دیگر پیامی دربارهٔ {codes} اینجا نمی‌آید.",
         "en": "Disconnected: nothing more about {codes} will be sent here.",

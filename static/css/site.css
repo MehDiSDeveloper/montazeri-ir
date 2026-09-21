@@ -1672,6 +1672,14 @@ fieldset.field legend { padding: 0; margin-bottom: 7px; font-size: var(--step--1
 .bubble-head time { font-size: 11.5px; color: var(--mute); }
 .bubble-body { color: var(--ink-2); line-height: 1.9; overflow-wrap: anywhere; }
 body[dir="ltr"] .bubble-body { line-height: 1.7; }
+/* Something the visitor did rather than said — a cancellation — sits on the
+   centre line, between the two sides of the conversation. */
+.thread-event {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+  font-size: var(--step--1); color: var(--mute);
+}
+.thread-event svg { width: 14px; height: 14px; color: var(--accent-strong); }
+.thread-event time { font-size: 11.5px; }
 .thread-waiting { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: var(--step--1); color: var(--mute); }
 .thread-waiting svg { width: 16px; height: 16px; flex: none; color: var(--accent-strong); }
 .track-reply { margin-top: 22px; }

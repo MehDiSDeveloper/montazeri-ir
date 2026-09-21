@@ -439,7 +439,11 @@ class MessageAdmin(admin.ModelAdmin):
                 who, style = "شما — you", "background:var(--selected-bg);margin-inline-start:0;margin-inline-end:auto"
             else:
                 who, style = obj.name, "background:var(--darkened-bg);margin-inline-start:auto;margin-inline-end:0"
-            turns.append((style, who, reply.created_at.strftime("%Y-%m-%d %H:%M"), linebreaksbr(reply.body)))
+            if reply.event == reply.Event.CANCELLED:
+                body = "🚫 درخواست را از بله لغو کرد — cancelled the request from Bale"
+            else:
+                body = linebreaksbr(reply.body)
+            turns.append((style, who, reply.created_at.strftime("%Y-%m-%d %H:%M"), body))
         return format_html(
             '<div style="display:grid;gap:10px;max-width:48rem">{}</div>',
             format_html_join(

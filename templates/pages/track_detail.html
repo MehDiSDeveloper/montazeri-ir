@@ -37,6 +37,12 @@
         <div class="bubble-body" dir="auto">{{ message.body|linebreaksbr }}</div>
       </li>
       {% for reply in replies %}
+        {% if reply.event == "cancelled" %}
+        <li class="thread-event"{% if forloop.last %} id="thread-end"{% endif %}>
+          <svg aria-hidden="true"><use href="#i-x"></use></svg>{% t "track.cancelled_event" %}
+          <time datetime="{{ reply.created_at|iso }}">{{ reply.created_at|smart_date:"day-month-year" }} · {{ reply.created_at|time:"H:i"|fa_num }}</time>
+        </li>
+        {% else %}
         <li class="bubble{% if reply.from_owner %} is-owner{% else %} is-mine{% endif %}"{% if forloop.last %} id="thread-end"{% endif %}>
           <div class="bubble-head">
             <b>{% if reply.from_owner %}{{ profile|tr:"full_name" }}{% else %}{% t "track.you" %}{% endif %}</b>
@@ -44,6 +50,7 @@
           </div>
           <div class="bubble-body" dir="auto">{{ reply.body|linebreaksbr }}</div>
         </li>
+        {% endif %}
       {% endfor %}
     </ol>
 
