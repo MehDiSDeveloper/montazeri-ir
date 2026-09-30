@@ -60,7 +60,9 @@ place of `messenger.call` is why none of it touches the network;
 status each reply leaves, and the inbox's filters and search;
 `test_visitor_bot.py` pins the visitor's side of the bot — linking a chat,
 every way linking must fail, the updates it receives, and reply and cancel,
-including that a visitor can never press anything that is not theirs.
+including that a visitor can never press anything that is not theirs;
+`test_admin_upload.py` pins the admin's file fields — the widget on every
+one, the profile's pictures first, save, and clear.
 
 ## The shape of the project
 
@@ -562,6 +564,21 @@ built it belongs in `apps/panel/` as its own app with its own templates,
 reusing `site.css`'s tokens, and the stock admin can then be switched off in
 one line. Until then, do not build admin-shaped branches into the public pages
 — the two audiences are different and the panel is a screen of its own.
+
+**Every file field in the admin uses `UploadWidget`** (`formfield_overrides =
+UPLOADS` in `apps/content/admin.py`, inlines included, plus
+`static/js/admin-upload.js` and `static/css/admin-upload.css`, which only the
+admin loads). The stock input shows nothing but a file name, and a chosen file
+is sent only when the form is saved, so on the long profile form a photo looked
+applied when it was not. The widget shows the picture that is live now, a
+preview of the one waiting (name and size, «با ذخیره اعمال می‌شود») with a
+«منصرف شدم» undo, dims the live picture when «پاک کردن» is ticked — choosing
+a file and ticking clear undo each other, because Django refuses both — and
+keeps a fixed bar with «ذخیره» (it submits as "save and continue") until the
+form is sent; leaving with a file waiting asks first. `ProfileAdmin` puts the
+pictures first, has `save_on_top`, and its list redirects to the one profile,
+so «ذخیره» comes back to the form. Each file field's `help_text` says where on
+the site it shows — keep that true when a template starts or stops using one.
 
 ## Deployment
 
