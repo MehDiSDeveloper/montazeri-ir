@@ -92,6 +92,8 @@ rendering blank, so you can translate the site gradually.
 
 ## Deploying
 
+> **Live:** https://mohammadmahdimontazeri.ir on the VPS. Where and how it is deployed, and how to ship an update: [CLAUDE.md → Production](CLAUDE.md).
+
 Any host that runs a container and gives you one writable directory.
 
 1. Build and push the image, or point the host at this repository.

@@ -580,6 +580,56 @@ pictures first, has `save_on_top`, and its list redirects to the one profile,
 so «ذخیره» comes back to the form. Each file field's `help_text` says where on
 the site it shows — keep that true when a template starts or stops using one.
 
+## Production: where and how this site is live
+
+> A deploy changes the **live** site. Ask the user before deploying.
+
+| | |
+|---|---|
+| URL | https://mohammadmahdimontazeri.ir (`www.` and `http://` redirect here) |
+| Server | VPS `91.207.18.218` (Webdade, Ubuntu 24.04). From Windows: `ssh vps` → user `deploy` (key login, passwordless sudo, in the `docker` group) |
+| App dir | `/srv/montazeri-ir/`: code (replaced on every deploy), `.env` (production secrets, only on the server), `data/` (the volume; deploy never touches it) |
+| Container | published on `127.0.0.1:8004` → 8000. Only Caddy is public (ports 80/443) |
+| Reverse proxy | Caddy on the host, automatic Let's Encrypt HTTPS. Config source `G:\Repos\devops\server\caddy\Caddyfile`, applied with `bash /g/Repos/devops/caddy-apply.sh` |
+| Runbook | `G:\Repos\devops\RUNBOOK.md` (server layout, logs, restart, backups, DNS). Keep it updated after any server change |
+
+**Deploy** (Windows PowerShell; takes the **local working copy**, uncommitted changes included, git is not involved):
+
+```
+G:\Repos\devops\deploy.ps1 montazeri-ir
+```
+
+It uploads the repo without `.git`, `.venv`, `node_modules`, `.next`, `.env*`, `data/` and the dev-only compose file,
+strips CRLF from `*.sh`, rsyncs into `/srv/montazeri-ir/` (keeping `.env` and `data/`), runs `docker compose up -d --build`
+and waits for a 200 on `http://127.0.0.1:8004/healthz`. Migrations run in the container's start script, so there is no manual step.
+
+**Compose on the server.** The server `.env` sets `COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml`, so a plain `docker compose …` in `/srv/montazeri-ir` uses the prod override. `docker-compose.prod.yml` is not in this repo; it lives in `G:\Repos\devops\server\montazeri-ir\` and is shipped by `deploy.sh`. It replaces the port with `127.0.0.1:8004`. `docker-compose.override.yml` (runserver, DEBUG, the polling `bot` service) is dev-only and is never uploaded.
+If you change the service name, the container port or the published port here, update `G:\Repos\devops\`
+(`deploy.sh`, `server/montazeri-ir/`, the Caddyfile) in the same change, or the live site breaks.
+
+**Production environment** lives only in `/srv/montazeri-ir/.env` (mode 600). A new variable the code needs must be added there too,
+not only to `.env.example`. Change a key without opening the file (it backs up `.env` and re-creates the container):
+`printf 'KEY=value\n' | bash /g/Repos/devops/env-set.sh montazeri-ir`. Never print, copy into chat or commit its values.
+
+**Look at the live app:**
+
+```
+ssh vps "cd /srv/montazeri-ir && docker compose ps && docker compose logs --tail 100"
+```
+
+**Backups:** `data/` is backed up every night (03:30) to `/var/backups/apps/` on the server and pulled daily to `G:\apps backup` on Windows; 14 days are kept in each place. How to restore: RUNBOOK → Backups.
+
+**Specific to this app:**
+
+- Uploads (`/media/`) are served by **Caddy** from `/srv/montazeri-ir/data/media`, because Django serves them only with `DEBUG` on.
+- Admin user `admin` was created once with `createsuperuser --noinput` from `DJANGO_SUPERUSER_*` in the server `.env`.
+- The bot `@invt4mntbot` is the **production** bot (token in the server `.env`, `DJANGO_BOT_WEBHOOK_SECRET` generated on the server).
+  `start.sh` registers `https://mohammadmahdimontazeri.ir/bot/<secret>/` on every boot; check with
+  `docker compose exec -T web python manage.py bale status`. Don't run this token locally (the local `bot` service would poll it):
+  use a separate test bot in the local `.env`.
+- SQLite runs in WAL mode on the server (the default); back it up with `sqlite3 .backup`, never by copying the file alone.
+- The live database started empty on 2026-09-30 with `seed_profile`. **Never run `seed_demo` on the server.**
+
 ## Deployment
 
 One container, one process, one volume:
