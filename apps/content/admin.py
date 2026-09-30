@@ -15,7 +15,10 @@ from datetime import timedelta
 
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.widgets import AdminFileWidget
+from django.db import models
 from django.db.models import Count, Q
+from django.shortcuts import redirect
 from django.template.defaultfilters import linebreaksbr
 from django.utils import timezone
 from django.utils.html import format_html, format_html_join
@@ -48,8 +51,79 @@ def _per_language(*names):
     ]
 
 
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".svg")
+
+
+class UploadWidget(AdminFileWidget):
+    """The stock file input, plus what it never tells you.
+
+    A chosen file only reaches the server when the form is saved, and the stock
+    input shows nothing but its name. This one shows the file that is live now,
+    a preview of the one waiting, an undo for the choice, and — through
+    admin-upload.js — a bar that stays on screen until «ذخیره» is pressed.
+    """
+
+    class Media:
+        css = {"all": ["css/admin-upload.css"]}
+        js = ["js/admin-upload.js"]
+
+    def render(self, name, value, attrs=None, renderer=None):
+        live = ""
+        if value and getattr(value, "url", None) and value.name.lower().endswith(IMAGE_EXTENSIONS):
+            live = format_html(
+                '<a class="upload-live" href="{0}" target="_blank" rel="noopener" '
+                'title="همین الان روی سایت است"><img src="{0}" alt=""></a>',
+                value.url,
+            )
+        return format_html(
+            '<div class="upload" data-upload>{}<div class="upload-field">{}'
+            '<div class="upload-new" hidden><img alt="" hidden>'
+            '<span><b class="upload-name"></b><small>با «ذخیره» اعمال می‌شود و روی سایت می‌نشیند</small></span>'
+            '<button type="button" class="button" data-upload-undo>✕ منصرف شدم</button></div>'
+            '<small class="upload-gone" hidden>با «ذخیره» از سایت حذف می‌شود</small>'
+            "</div></div>",
+            live,
+            super().render(name, value, attrs, renderer),
+        )
+
+
+# Every admin with a file field uses these, inlines included. ImageField needs
+# its own key: the admin matches a field's own class before its parent's.
+UPLOADS = {
+    models.ImageField: {"widget": UploadWidget(attrs={"accept": "image/*"})},
+    models.FileField: {"widget": UploadWidget},
+}
+
+
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
+    """One row, so the list is skipped and the pictures come first.
+
+    The form is long — every text in three languages — and the file inputs used
+    to sit somewhere in the middle with «ذخیره» far below, so a chosen photo
+    looked taken while nothing had been sent.
+    """
+
+    formfield_overrides = UPLOADS
+    save_on_top = True
+    fieldsets = [
+        (
+            "عکس‌ها و فایل‌ها — pictures and files",
+            {
+                "fields": ("avatar", "og_image", "resume_file"),
+                "description": "فایل را انتخاب کنید و «ذخیره» را بزنید؛ تا ذخیره نشود روی سایت نمی‌آید. "
+                "برای برداشتن چیزی که الان روی سایت است، تیک «پاک کردن» کنارش را بزنید و ذخیره کنید.",
+            },
+        ),
+        ("Contact", {"fields": ("email", "phone", "telegram", "github", "linkedin", "twitter", "website", "is_available")}),
+        *_per_language(*Profile.I18N_FIELDS),
+    ]
+
+    def changelist_view(self, request, extra_context=None):
+        # A list of one row is a detour, and «ذخیره» lands here: send it back
+        # to the form, where the success message and the new picture show.
+        return redirect("admin:content_profile_change", Profile.load().pk)
+
     def has_add_permission(self, request):
         return not Profile.objects.exists()
 
@@ -82,6 +156,8 @@ class TagAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
+    formfield_overrides = UPLOADS
+    save_on_top = True
     list_display = ("slug", "title_fa", "year", "is_featured", "is_published", "order")
     list_filter = ("is_featured", "is_published", "tags")
     list_editable = ("is_featured", "is_published", "order")
@@ -98,6 +174,7 @@ class ExperienceAdmin(admin.ModelAdmin):
 class PostImageInline(admin.TabularInline):
     model = PostImage
     extra = 1
+    formfield_overrides = UPLOADS
     fields = ("image", "alt", "order", "snippet")
     readonly_fields = ("snippet",)
 
@@ -116,6 +193,7 @@ class PostImageInline(admin.TabularInline):
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
+    formfield_overrides = UPLOADS
     list_display = ("slug", "title", "written_in", "published_at", "is_published")
     list_filter = ("is_published", "tags")
     list_editable = ("is_published",)

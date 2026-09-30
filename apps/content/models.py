@@ -143,14 +143,24 @@ class TimeStamped(models.Model):
 class Profile(Translatable, TimeStamped):
     """Singleton. `Profile.load()` is the only way anything reads it."""
 
-    avatar = models.ImageField(upload_to="profile/", blank=True)
+    avatar = models.ImageField(
+        upload_to="profile/",
+        blank=True,
+        help_text="Your portrait: the home page hero, /about/, /resume/ and the business card /card/ — "
+        "and the shared-link picture while the one below is empty. Square, at least 700×700 px.",
+    )
     og_image = models.ImageField(
         upload_to="profile/",
         blank=True,
-        help_text="The picture a shared link shows on LinkedIn, Telegram, WhatsApp or X. "
-        "1200×630 px. Falls back to the avatar.",
+        help_text="The picture a shared link shows on LinkedIn, Telegram, WhatsApp or X, for every "
+        "page without a picture of its own. 1200×630 px. Falls back to the avatar.",
     )
-    resume_file = models.FileField(upload_to="profile/", blank=True)
+    resume_file = models.FileField(
+        upload_to="profile/",
+        blank=True,
+        help_text="The file behind every «download résumé» button: the home hero, /resume/ and the "
+        "footer. PDF. Empty hides the buttons.",
+    )
 
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
@@ -285,7 +295,12 @@ class Project(Translatable, TimeStamped):
     slug = models.SlugField(max_length=140, unique=True)
     year = models.PositiveIntegerField(null=True, blank=True)
     stack = models.CharField(max_length=200, blank=True, help_text="Comma separated, Latin, e.g. Django, Postgres")
-    cover = models.ImageField(upload_to="projects/", blank=True)
+    cover = models.ImageField(
+        upload_to="projects/",
+        blank=True,
+        help_text="The project's card on the home page and /projects/, the top of its own page, and "
+        "the picture when its link is shared. Landscape, about 1600×1000 px.",
+    )
     repo_url = models.URLField(blank=True)
     demo_url = models.URLField(blank=True)
     tags = models.ManyToManyField(Tag, blank=True, related_name="projects")
@@ -460,7 +475,11 @@ class PostImage(models.Model):
     """
 
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="posts/body/")
+    image = models.ImageField(
+        upload_to="posts/body/",
+        help_text="A picture inside the post's text. Save, then paste the Markdown line beside it "
+        "where it should appear; the first one is also the shared-link picture when there is no cover.",
+    )
     alt = models.CharField(
         max_length=200,
         blank=True,
