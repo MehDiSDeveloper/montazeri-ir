@@ -2,6 +2,15 @@
 
 Guidance for Claude Code (claude.ai/code) working in this repository.
 
+## Principles (apply to every change)
+
+- **Simple code:** the simplest solution that works; no needless abstraction or complexity.
+- **Scalable:** structure code and data so they grow without rewrites.
+- **Consistent, high-quality UX:** every screen behaves and looks like the rest of the product.
+- **Clean, beautiful UI:** minimal, friendly, self-explanatory, following proven global patterns.
+- **Short user paths:** fewest steps and clicks to finish a task; cut any step that isn't needed.
+- **Stay on task:** do only what the task needs; no unrelated extras unless truly required.
+
 ## What this is
 
 The personal site of **Mahdi Montazeri** — a portfolio, a blog and a digital
