@@ -16,9 +16,15 @@ are the defensible ones — 25M unique customers, 800M invoice records, up to
 30x on page data loads, ~70% of the architecture migration done.
 
 The site itself is no longer listed as a project — see `_retire_projects`.
-The four personal projects here (actpact, rechnungskit, webhook-gateway,
-TenantForge) are described from their own READMEs; actpact is the only one
-with a public URL, and its repository is private on purpose.
+The personal projects here (actpact, rechnungskit, webhook-gateway,
+TenantForge) are described from their own READMEs; actpact's repository is
+private on purpose, the three libraries link to their public ones.
+
+Smart Studio, Salonyar, GeekWare and Podcast Workspace come from
+`portfolio-new-projects.md` (2026-10-08), itself drawn from each project's
+code. Their repositories are private, except Podcast Workspace's. Salonyar is
+pilot-ready but not live, so it has no link and claims no salon uses it;
+Smart Studio needs a login, so it has no demo link either.
 
 Education is deliberately absent. There is no completed degree, and an empty
 section renders nothing at all, which reads better than an unfinished entry.
@@ -243,6 +249,11 @@ class Command(BaseCommand):
             ("databases", "پایگاه داده", "Databases", "Datenbanken"),
             ("fastapi", "فست‌ای‌پی‌آی", "FastAPI", "FastAPI"),
             ("security", "امنیت", "Security", "Sicherheit"),
+            ("typescript", "تایپ‌اسکریپت", "TypeScript", "TypeScript"),
+            ("react", "ری‌اکت", "React", "React"),
+            ("nodejs", "نود جی‌اس", "Node.js", "Node.js"),
+            ("android", "اندروید", "Android", "Android"),
+            ("bale", "بله", "Bale", "Bale"),
         ]
         out = {}
         for slug, fa, en, de in rows:
@@ -380,7 +391,7 @@ class Command(BaseCommand):
         self._upsert_project(
             slug="sql-server-at-scale",
             year=2025,
-            order=1,
+            order=5,
             stack="SQL Server, T-SQL, EF Core, C#",
             tag_slugs=("databases", "performance", "dotnet"),
             tags=tags,
@@ -432,7 +443,7 @@ class Command(BaseCommand):
         self._upsert_project(
             slug="actpact",
             year=2026,
-            order=2,
+            order=4,
             stack="FastAPI, SQLAlchemy 2, SQLite, Jinja2, PWA, Capacitor, Docker",
             tag_slugs=("python", "fastapi", "architecture"),
             tags=tags,
@@ -486,11 +497,12 @@ class Command(BaseCommand):
         self._upsert_project(
             slug="rechnungskit",
             year=2026,
-            order=3,
+            order=6,
             stack="Python, FastAPI, Pydantic, lxml, EN 16931, XRechnung, Factur-X",
             tag_slugs=("python", "fastapi", "architecture"),
             tags=tags,
             featured=False,
+            repo_url="https://github.com/MehDiSDeveloper/rechnungskit",
             fa=dict(
                 title="rechnungskit — فاکتور الکترونیکی آلمان در پایتون",
                 summary=(
@@ -542,11 +554,12 @@ class Command(BaseCommand):
         self._upsert_project(
             slug="webhook-gateway",
             year=2026,
-            order=4,
+            order=7,
             stack="FastAPI, PostgreSQL, Redis, SQLAlchemy 2, Alembic, Prometheus",
             tag_slugs=("python", "fastapi", "databases", "security"),
             tags=tags,
             featured=False,
+            repo_url="https://github.com/MehDiSDeveloper/webhook-gateway",
             fa=dict(
                 title="webhook-gateway — دریافت و تحویل بادوامِ وبهوک",
                 summary=(
@@ -596,11 +609,12 @@ class Command(BaseCommand):
         self._upsert_project(
             slug="tenantforge",
             year=2026,
-            order=5,
+            order=8,
             stack="FastAPI, PostgreSQL, SQLAlchemy 2, Row-Level Security, JWT, Argon2",
             tag_slugs=("python", "fastapi", "databases", "security"),
             tags=tags,
             featured=False,
+            repo_url="https://github.com/MehDiSDeveloper/tenantforge",
             fa=dict(
                 title="TenantForge — اسکلت یک بک‌اند SaaS چندمستأجری",
                 summary=(
@@ -648,17 +662,253 @@ class Command(BaseCommand):
             ),
         )
 
+        self._upsert_project(
+            slug="content-studio",
+            year=2026,
+            order=1,
+            stack=(
+                "Python, FastAPI, PostgreSQL 16, SQLAlchemy, Alembic, React 19, TypeScript, Vite, "
+                "Kotlin, Jetpack Compose, Room, Docker"
+            ),
+            tag_slugs=("python", "fastapi", "architecture", "databases", "react", "android"),
+            tags=tags,
+            fa=dict(
+                title="استودیو هوشمند — برنامه‌ریزی و تولید محتوای اینستاگرام",
+                summary=(
+                    "ابزار برنامه‌ریزی و تولید محتوای اینستاگرام برای یک استراتژیست محتوا و "
+                    "تیمش، با اپ اندروید آفلاین‌محور، پنل وب و تقویم جلالی که مناسبت‌های ایرانی "
+                    "را می‌شناسد."
+                ),
+                role="پروژه‌ی تک‌نفره — بک‌اند، پنل وب، اپ اندروید، سیستم طراحی و استقرار",
+                problem=_P7_PROBLEM_FA,
+                body=_P7_BODY_FA,
+                outcome=(
+                    "روی localand.ir زنده است: ۱۹۰ تست بک‌اند، ۲۱ تست Playwright برای پنل وب، "
+                    "۹۵ عملیات API و اپ اندرویدی که خودش را به‌روز می‌کند."
+                ),
+            ),
+            en=dict(
+                title="Smart Studio — planning and producing Instagram content",
+                summary=(
+                    "A planning and production tool for an Instagram content strategist and "
+                    "their team: an offline-first Android app, a web panel, and a Jalali "
+                    "calendar that knows Iranian occasions."
+                ),
+                role="Solo project — backend, web panel, Android app, design system and deployment",
+                problem=_P7_PROBLEM_EN,
+                body=_P7_BODY_EN,
+                outcome=(
+                    "Live at localand.ir: 190 backend tests, 21 Playwright tests for the web "
+                    "panel, 95 API operations, and an Android app that updates itself."
+                ),
+            ),
+            de=dict(
+                title="Smart Studio — Instagram-Inhalte planen und produzieren",
+                summary=(
+                    "Ein Planungs- und Produktionswerkzeug für Instagram-Content-Strategie und "
+                    "das Team dahinter: Offline-first-Android-App, Web-Panel und ein "
+                    "Jalali-Kalender, der iranische Anlässe kennt."
+                ),
+                role="Einzelprojekt — Backend, Web-Panel, Android-App, Designsystem und Deployment",
+                problem=_P7_PROBLEM_DE,
+                body=_P7_BODY_DE,
+                outcome=(
+                    "Live unter localand.ir: 190 Backend-Tests, 21 Playwright-Tests für das "
+                    "Web-Panel, 95 API-Operationen und eine Android-App, die sich selbst "
+                    "aktualisiert."
+                ),
+            ),
+        )
+
+        self._upsert_project(
+            slug="salonyar",
+            year=2026,
+            order=2,
+            stack=(
+                "TypeScript, NestJS, Prisma, PostgreSQL, Redis, BullMQ, React, Vite, Tailwind, "
+                "Bale Mini App, Docker, nginx"
+            ),
+            tag_slugs=("typescript", "react", "architecture", "databases", "performance", "bale"),
+            tags=tags,
+            fa=dict(
+                title="سالن‌یار — نوبت‌دهی آرایشگاه، بدون نصب اپ",
+                summary=(
+                    "سامانه‌ی نوبت‌دهی چندمستأجری برای آرایشگاه‌ها: هر سالن یک لینک رزرو می‌گیرد "
+                    "که در هر مرورگری باز می‌شود، به‌علاوه‌ی مینی‌اپ بله، پنل سالن و آرایشگر و "
+                    "کنسول مدیر پلتفرم."
+                ),
+                role="پروژه‌ی تک‌نفره — طراحی محصول، بک‌اند، فرانت‌اند و استقرار",
+                problem=_P8_PROBLEM_FA,
+                body=_P8_BODY_FA,
+                outcome=(
+                    "آماده‌ی پایلوت پس از ۱۲ فاز: تست واحد و e2e، بودجه‌ی کارایی اجباری در build "
+                    "(حدود ۸۸ کیلوبایت جاوااسکریپت gzip در صفحه‌ی اول) و کوئری‌های اصلی "
+                    "اندازه‌گیری‌شده روی حدود ۴٫۴ میلیون نوبت."
+                ),
+            ),
+            en=dict(
+                title="Salonyar — salon booking with no app to install",
+                summary=(
+                    "A multi-tenant booking system for hair salons: each salon gets a public "
+                    "booking link that opens in any browser, plus a Bale mini app, a salon and "
+                    "stylist panel, and a platform console."
+                ),
+                role="Solo project — product design, backend, frontend and deployment",
+                problem=_P8_PROBLEM_EN,
+                body=_P8_BODY_EN,
+                outcome=(
+                    "Pilot-ready after 12 phases: unit and e2e tests, a performance budget the "
+                    "build enforces (about 88 KB of gzipped JavaScript on first load), and the "
+                    "main queries measured on about 4.4M bookings."
+                ),
+            ),
+            de=dict(
+                title="Salonyar — Terminbuchung für Friseursalons, ohne App",
+                summary=(
+                    "Ein mandantenfähiges Buchungssystem für Friseursalons: Jeder Salon bekommt "
+                    "einen Buchungslink, der in jedem Browser öffnet, dazu eine Bale-Mini-App, "
+                    "ein Salon-Panel und eine Plattform-Konsole."
+                ),
+                role="Einzelprojekt — Produktdesign, Backend, Frontend und Deployment",
+                problem=_P8_PROBLEM_DE,
+                body=_P8_BODY_DE,
+                outcome=(
+                    "Pilotreif nach 12 Phasen: Unit- und E2E-Tests, ein im Build erzwungenes "
+                    "Performance-Budget (rund 88 KB JavaScript gzip beim ersten Laden) und die "
+                    "Hauptabfragen an rund 4,4 Mio. Terminen gemessen."
+                ),
+            ),
+        )
+
+        self._upsert_project(
+            slug="geekware",
+            year=2026,
+            order=3,
+            stack=(
+                "Node.js, Express 5, Server-side rendering, JSON file storage, Bale Bot API, PWA, "
+                "Docker, Caddy"
+            ),
+            tag_slugs=("nodejs", "architecture", "bale"),
+            tags=tags,
+            demo_url="https://geekware.ir",
+            fa=dict(
+                title="گیک‌ویر — ثبت سفارش نرم‌افزار با متن یا ویس",
+                summary=(
+                    "سایت موبایل‌محور برای ثبت سفارش نرم‌افزار با متن یا پیام صوتی، که هر سفارش "
+                    "را با دکمه‌های وضعیت به ربات بله می‌فرستد و با پنل ادمین همگام می‌ماند."
+                ),
+                role="طراحی، توسعه و راه‌اندازی کامل",
+                problem=_P9_PROBLEM_FA,
+                body=_P9_BODY_FA,
+                outcome=(
+                    "روی geekware.ir زنده است: حدود ۷ هزار خط جاوااسکریپت بدون فریم‌ورک فرانت، "
+                    "که سفارش را از ثبت تا پرداخت و تحویل در یک مسیر بین سایت، دو ربات بله و پنل "
+                    "نگه می‌دارد."
+                ),
+            ),
+            en=dict(
+                title="GeekWare — ordering software by text or voice",
+                summary=(
+                    "A mobile-first site for ordering software by text or voice message; each "
+                    "order reaches a Bale bot with status buttons and stays in step with the "
+                    "admin panel."
+                ),
+                role="Design, development and launch, end to end",
+                problem=_P9_PROBLEM_EN,
+                body=_P9_BODY_EN,
+                outcome=(
+                    "Live at geekware.ir: about 7k lines of JavaScript with no front-end "
+                    "framework, keeping an order on one path from request to payment and "
+                    "delivery across the site, two Bale bots and the panel."
+                ),
+            ),
+            de=dict(
+                title="GeekWare — Software bestellen per Text oder Sprachnachricht",
+                summary=(
+                    "Eine Mobile-first-Website, über die man Software per Text oder "
+                    "Sprachnachricht bestellt; jede Bestellung landet mit Status-Buttons in "
+                    "einem Bale-Bot und bleibt mit dem Admin-Panel synchron."
+                ),
+                role="Entwurf, Entwicklung und Launch, durchgehend",
+                problem=_P9_PROBLEM_DE,
+                body=_P9_BODY_DE,
+                outcome=(
+                    "Live unter geekware.ir: rund 7.000 Zeilen JavaScript ohne Frontend-"
+                    "Framework, die eine Bestellung von der Anfrage bis zu Zahlung und Lieferung "
+                    "auf einem Weg halten."
+                ),
+            ),
+        )
+
+        self._upsert_project(
+            slug="podcast-workspace",
+            year=2026,
+            order=9,
+            stack="Python 3.12, PySide6, SQLAlchemy, Alembic, SQLite FTS5, faster-whisper, ffmpeg",
+            tag_slugs=("python", "architecture"),
+            tags=tags,
+            featured=False,
+            repo_url="https://github.com/MehDiSDeveloper/content-manager",
+            fa=dict(
+                title="Podcast Workspace — میز کار آفلاین برای پادکستر",
+                summary=(
+                    "فضای کاری دسکتاپ و آفلاین برای یک پادکستر فارسی‌زبان: اپیزودها، فصل‌ها، "
+                    "ویس‌ها، ایده‌ها، تگ‌ها، یادداشت‌های زمان‌دار و متن پیاده‌شده‌ی صدا، در یک جا."
+                ),
+                role="طراحی و پیاده‌سازی",
+                problem=_P10_PROBLEM_FA,
+                body=_P10_BODY_FA,
+                outcome=(
+                    "یک اپ ویندوز در نسخه‌ی 1.22 با کد باز روی GitHub — پیاده‌سازی متن و جستجوی "
+                    "تمام‌متن، هر دو کاملاً روی خود دستگاه."
+                ),
+            ),
+            en=dict(
+                title="Podcast Workspace — an offline desk for a podcaster",
+                summary=(
+                    "An offline desktop workspace for a Persian-language podcaster: episodes, "
+                    "seasons, voice notes, ideas, tags, timestamped notes and transcripts, in "
+                    "one place."
+                ),
+                role="Design and implementation",
+                problem=_P10_PROBLEM_EN,
+                body=_P10_BODY_EN,
+                outcome=(
+                    "A Windows app at version 1.22, open source on GitHub — transcription and "
+                    "full-text search both running entirely on the machine."
+                ),
+            ),
+            de=dict(
+                title="Podcast Workspace — ein Offline-Arbeitsplatz für Podcaster",
+                summary=(
+                    "Ein Offline-Desktop-Arbeitsplatz für einen persischsprachigen Podcaster: "
+                    "Episoden, Staffeln, Sprachnotizen, Ideen, Tags, Notizen mit Zeitstempel "
+                    "und Transkripte an einem Ort."
+                ),
+                role="Entwurf und Umsetzung",
+                problem=_P10_PROBLEM_DE,
+                body=_P10_BODY_DE,
+                outcome=(
+                    "Eine Windows-App in Version 1.22, quelloffen auf GitHub — Transkription "
+                    "und Volltextsuche laufen vollständig auf dem Rechner."
+                ),
+            ),
+        )
+
     def _upsert_project(
-        self, *, slug, year, order, stack, tag_slugs, tags, fa, en, de, demo_url="", featured=True
+        self, *, slug, year, order, stack, tag_slugs, tags, fa, en, de,
+        demo_url="", repo_url="", featured=True,
     ):
-        # `featured` is what the home page shows, and it shows three: the two
-        # paid roles and actpact. The libraries live on /projects, which is
-        # where someone who wants to read code goes looking for them.
+        # `featured` is what the home page shows, and it shows the first three
+        # by `order`: the paid role and the two newest products. The libraries
+        # live on /projects, which is where someone who wants to read code goes
+        # looking for them.
         defaults = {
             "year": year,
             "order": order,
             "stack": stack,
             "demo_url": demo_url,
+            "repo_url": repo_url,
             "is_featured": featured,
             "is_published": True,
         }
@@ -1946,4 +2196,442 @@ Frontend.
 _E_BALA_FA = """\
 توسعه‌ی فول‌استک روی محصولات وب شرکت، به‌صورت پاره‌وقت و موازی با کار دیگر. C#
 و دات‌نت سمت سرور، به‌همراه فرانت‌اندی که روی آن ساخته می‌شد.
+"""
+
+# ── Smart Studio (content-studio) ───────────────────────────────────────────
+_P7_PROBLEM_EN = """\
+A content strategist runs ideas, scripts, the publishing calendar and the work
+of a camera operator, an editor and a designer across several apps and
+messenger groups. Foreign tools know neither the Jalali calendar nor Iranian
+occasions — nobody warns that a cheerful post has landed on a day of mourning —
+and inside Iran Google Play Services, FCM and Telegram are not things a
+product can lean on.
+"""
+
+_P7_BODY_EN = """\
+A FastAPI backend on PostgreSQL 16, a web panel in React 19 and TypeScript, and
+a native Android app in Kotlin and Jetpack Compose.
+
+**An idea in under two taps.** The idea inbox takes text, a voice note or a
+photo, and fills from Android's Share sheet — from Instagram or any other app.
+
+**One pipeline, from idea to analysis.** Idea, script, approval, shoot, edit,
+review, schedule, publish, analyse — as a kanban board with a history of every
+change. Script templates (hook, body, CTA, caption, hashtags) and shot lists;
+tasks with deadlines for each team member; and 48 hours after publishing, a
+reminder to log the numbers and a lesson learned.
+
+**A calendar that knows the occasions.** Monthly and weekly Jalali views with
+official, religious and marketing occasions, and a warning when cheerful content
+falls on a day of mourning.
+
+**Android, offline first.** A Room cache, delta sync and an outbox keyed for
+idempotency, so work done on the metro is never recorded twice. Notifications
+without Google Play Services, and builds for Cafe Bazaar, Myket and Google Play.
+
+**A web panel for the desk.** Kanban and calendar with drag and undo, global
+search on `Ctrl+K`, and autosave.
+
+**One design system for two platforms.** Colour tokens come from one source for
+web and Android, in light and dark, and the build fails if any of the 429 colour
+pairs it checks falls below WCAG AA contrast.
+
+**A multi-tenant backend** — organisation, brand, page — with roles and
+permissions, a job queue on PostgreSQL itself, notifications through Bale and
+Telegram bots, login codes from the Bale bot, and Persian search that tolerates
+ی/ک variants, the half-space, digits and typos.
+"""
+
+_P7_PROBLEM_DE = """\
+Eine Content-Strategie für Instagram verteilt sich über mehrere Apps und
+Messenger-Gruppen: Ideen, Skripte, der Veröffentlichungskalender und die Arbeit
+von Kamera, Schnitt und Design. Ausländische Werkzeuge kennen weder den
+Jalali-Kalender noch iranische Anlässe — niemand warnt, wenn ein fröhlicher
+Beitrag auf einen Trauertag fällt —, und im Iran sind Google Play Services, FCM
+und Telegram nichts, worauf sich ein Produkt verlassen kann.
+"""
+
+_P7_BODY_DE = """\
+Ein FastAPI-Backend auf PostgreSQL 16, ein Web-Panel in React 19 und TypeScript
+und eine native Android-App in Kotlin und Jetpack Compose.
+
+**Eine Idee in weniger als zwei Tippern.** Der Ideen-Eingang nimmt Text,
+Sprachnachricht oder Foto und füllt sich über das Teilen-Menü von Android — aus
+Instagram oder jeder anderen App.
+
+**Eine Pipeline von der Idee bis zur Auswertung.** Idee, Skript, Freigabe,
+Dreh, Schnitt, Review, Planung, Veröffentlichung, Analyse — als Kanban mit
+Änderungsverlauf. Skriptvorlagen (Hook, Hauptteil, CTA, Caption, Hashtags) und
+Shotlists; Aufgaben mit Fristen fürs Team; und 48 Stunden nach der
+Veröffentlichung die Erinnerung, Zahlen und eine Lehre festzuhalten.
+
+**Ein Kalender, der die Anlässe kennt.** Jalali-Monats- und Wochenansicht mit
+offiziellen, religiösen und Marketing-Anlässen, und eine Warnung, wenn
+fröhlicher Inhalt auf einen Trauertag fällt.
+
+**Android, offline first.** Room-Cache, Delta-Sync und eine Outbox mit
+Idempotenzschlüssel, damit unterwegs erledigte Arbeit nie doppelt ankommt.
+Benachrichtigungen ohne Google Play Services, Builds für Cafe Bazaar, Myket und
+Google Play.
+
+**Ein Web-Panel für den Schreibtisch.** Kanban und Kalender mit Drag & Drop und
+Rückgängig, globale Suche mit `Ctrl+K`, automatisches Speichern.
+
+**Ein Designsystem für zwei Plattformen.** Die Farbtokens kommen aus einer
+Quelle für Web und Android, hell und dunkel, und der Build schlägt fehl, sobald
+eines der 429 geprüften Farbpaare unter den WCAG-AA-Kontrast fällt.
+
+**Ein mandantenfähiges Backend** — Organisation, Marke, Seite — mit Rollen und
+Rechten, einer Job-Queue direkt in PostgreSQL, Benachrichtigungen über Bale- und
+Telegram-Bots, Login-Codes vom Bale-Bot und einer persischen Suche, die
+ی/ک-Varianten, Halbleerzeichen, Ziffern und Tippfehler verzeiht.
+"""
+
+_P7_PROBLEM_FA = """\
+یک استراتژیست محتوا ایده، سناریو، تقویم انتشار و کار فیلم‌بردار و تدوین‌گر و
+طراح را بین چند اپ و چند گروه پیام‌رسان مدیریت می‌کند. ابزارهای خارجی تقویم
+شمسی و مناسبت‌های ایرانی را نمی‌شناسند — کسی هشدار نمی‌دهد که محتوای شاد روی
+روز عزاداری افتاده — و در ایران Google Play Services، FCM و تلگرام چیزی نیستند
+که یک محصول بتواند رویشان حساب کند.
+"""
+
+_P7_BODY_FA = """\
+بک‌اند FastAPI روی PostgreSQL 16، پنل وب با React 19 و TypeScript، و اپ
+اندروید native با Kotlin و Jetpack Compose.
+
+**ایده در کمتر از دو لمس.** صندوق ایده متن، پیام صوتی و عکس می‌گیرد، و از
+منوی Share اندروید — از اینستاگرام یا هر اپ دیگری — هم پر می‌شود.
+
+**یک پایپ‌لاین، از ایده تا تحلیل.** ایده، سناریو، تأیید، فیلم‌برداری، تدوین،
+بازبینی، زمان‌بندی، انتشار و تحلیل، با نمای کانبان و تاریخچه‌ی تغییرات. قالب
+سناریو (قلاب، بدنه، CTA، کپشن، هشتگ) و شات‌لیست؛ تسک با ددلاین برای هر عضو
+تیم؛ و ۴۸ ساعت بعد از انتشار، یادآوری ثبت آمار و «درس آموخته».
+
+**تقویمی که مناسبت‌ها را می‌شناسد.** تقویم جلالی ماهانه و هفتگی با مناسبت‌های
+رسمی، مذهبی و بازاریابی، و هشدار وقتی محتوای شاد روی روز عزاداری می‌افتد.
+
+**اندروید، آفلاین‌محور.** کش Room، همگام‌سازی دلتا و یک outbox با کلید
+idempotency، تا کاری که در مترو انجام شده دو بار ثبت نشود. اعلان بدون Google
+Play Services، و نسخه برای کافه‌بازار، مایکت و Google Play.
+
+**پنل وب برای پشت میز.** کانبان و تقویم با drag و undo، جستجوی سراسری با
+`Ctrl+K`، و ذخیره‌ی خودکار.
+
+**یک سیستم طراحی برای دو پلتفرم.** توکن‌های رنگ از یک منبع به وب و اندروید
+می‌رسند، در تم روشن و تیره، و اگر یکی از ۴۲۹ جفت رنگِ بررسی‌شده کنتراست WCAG AA
+را نداشته باشد، build شکست می‌خورد.
+
+**بک‌اند چندمستأجری** — سازمان، برند، صفحه — با نقش و مجوز، صف کار روی خود
+PostgreSQL، اعلان از ربات بله و تلگرام، کد ورود از ربات بله، و جستجوی فارسی که
+ی و ک، نیم‌فاصله، اعداد و غلط تایپی را تحمل می‌کند.
+"""
+
+# ── Salonyar ────────────────────────────────────────────────────────────────
+_P8_PROBLEM_EN = """\
+Salons take bookings by phone or in Instagram DMs, and the result is double
+bookings, forgotten appointments and empty chairs. Off-the-shelf booking tools
+assume two things that do not hold in Iran: that a customer will install an app
+and sign up for one haircut, and that foreign SMS and push services reach the
+phone. So a booking has to start from a link, finish in under a minute, and
+rest on Bale and domestic SMS.
+"""
+
+_P8_BODY_EN = """\
+A NestJS backend on PostgreSQL and Prisma, a BullMQ queue on Redis, and one
+React front end that is both the web page and the Bale mini app.
+
+**One link per salon.** `salonyar.ir/<slug>` renders the salon — name, address,
+hours, services and prices — on the server (nginx SSI with a 30-second cache),
+so a link shared on WhatsApp or Instagram previews the salon rather than an
+empty page.
+
+**One booking core, two doors.** Web and Bale go through the same flow: "any
+stylist" is the default and the nearest free times come first. A customer
+browses without signing in and is verified by a one-time code only at the
+moment of booking. Inside Bale the number is confirmed through Bale's own
+dialog, with nothing to type, and the web and Bale accounts become one
+identity.
+
+**The database refuses a double booking, not the code.** Create, cancel,
+reschedule, confirm and decline, with a cancellation window per stylist. Two
+simultaneous bookings for the same slot are stopped by a PostgreSQL exclusion
+constraint, and a concurrency test checks exactly that.
+
+**A mobile-first panel for the salon.** A calendar of every booking, phone
+bookings entered by hand, and a printable link and QR. Salons sign themselves
+up, and a wizard sets out default services, stylists and hours, then hands over
+the web link, the QR, the Bale link and a line for the Instagram bio. Plans
+come with a trial, a stylist limit per plan, and remaining days converted when
+the plan changes.
+
+**Against no-shows:** reminders in Bale with SMS as the fallback, and a deposit
+through Bale's wallet. Notifications leave through BullMQ with an outbox; login
+codes come from Bale's Safir service and Kavenegar SMS, rate-limited. The
+production stack backs itself up daily and alerts to Bale, and the API refuses
+to start with insecure settings.
+"""
+
+_P8_PROBLEM_DE = """\
+Friseursalons nehmen Termine per Telefon oder Instagram-Direktnachricht an —
+mit Doppelbuchungen, vergessenen Terminen und leeren Stühlen als Folge.
+Fertige Buchungstools setzen zwei Dinge voraus, die im Iran nicht gelten: dass
+jemand für einen Haarschnitt eine App installiert und sich registriert, und
+dass ausländische SMS- und Push-Dienste das Telefon erreichen. Eine Buchung
+muss also mit einem Link beginnen, in unter einer Minute fertig sein und auf
+Bale und inländischer SMS aufbauen.
+"""
+
+_P8_BODY_DE = """\
+Ein NestJS-Backend auf PostgreSQL und Prisma, eine BullMQ-Queue auf Redis und
+ein React-Frontend, das zugleich Webseite und Bale-Mini-App ist.
+
+**Ein Link pro Salon.** `salonyar.ir/<slug>` rendert den Salon — Name, Adresse,
+Öffnungszeiten, Leistungen und Preise — auf dem Server (nginx SSI mit
+30-Sekunden-Cache), sodass ein auf WhatsApp oder Instagram geteilter Link den
+Salon zeigt statt einer leeren Seite.
+
+**Ein Buchungskern, zwei Eingänge.** Web und Bale laufen durch denselben Ablauf:
+„egal bei wem" ist voreingestellt, die nächsten freien Zeiten stehen oben. Man
+stöbert ohne Anmeldung und bestätigt sich erst beim Buchen mit einem
+Einmalcode. In Bale wird die Nummer über Bales eigenen Dialog bestätigt, ohne
+Tippen, und Web- und Bale-Konto werden eine Identität.
+
+**Die Datenbank verweigert die Doppelbuchung, nicht der Code.** Anlegen,
+stornieren, verschieben, bestätigen und ablehnen, mit einem Stornofenster pro
+Person. Zwei gleichzeitige Buchungen desselben Slots stoppt ein
+Exclusion-Constraint in PostgreSQL, und ein Nebenläufigkeitstest prüft genau
+das.
+
+**Ein Mobile-first-Panel für den Salon.** Ein Kalender aller Termine,
+telefonische Buchungen von Hand, ein druckbarer Link mit QR-Code. Salons
+registrieren sich selbst, ein Assistent legt Standardleistungen, Personal und
+Öffnungszeiten an und übergibt am Ende Weblink, QR-Code, Bale-Link und eine
+Zeile für die Instagram-Bio. Tarife mit Testphase, Personal-Limit je Tarif und
+Umrechnung der Resttage beim Wechsel.
+
+**Gegen No-Shows:** Erinnerungen in Bale mit SMS als Rückfallebene und eine
+Anzahlung über Bales Wallet. Benachrichtigungen gehen über BullMQ mit Outbox
+raus; Login-Codes kommen von Bales Safir-Dienst und Kavenegar-SMS, mit
+Rate-Limit. Der Produktions-Stack sichert sich täglich selbst, meldet Störungen
+an Bale, und die API startet mit unsicheren Einstellungen gar nicht erst.
+"""
+
+_P8_PROBLEM_FA = """\
+آرایشگاه‌ها نوبت را تلفنی یا در دایرکت اینستاگرام می‌گیرند، و نتیجه‌اش نوبت‌های
+روی هم، مشتری‌ای که یادش می‌رود و صندلی‌ای است که خالی می‌ماند. ابزارهای آماده‌ی
+نوبت‌دهی دو فرض دارند که در ایران جواب نمی‌دهد: اینکه مشتری برای یک نوبت اپ
+نصب می‌کند و ثبت‌نام می‌کند، و اینکه پیامک و اعلانِ سرویس‌های خارجی به گوشی
+می‌رسد. پس رزرو باید از یک لینک شروع شود، در کمتر از یک دقیقه تمام شود، و روی
+بله و پیامک داخلی تکیه کند.
+"""
+
+_P8_BODY_FA = """\
+بک‌اند NestJS روی PostgreSQL و Prisma، صف BullMQ روی Redis، و یک فرانت React که
+هم صفحه‌ی وب است و هم مینی‌اپ بله.
+
+**یک لینک برای هر سالن.** `salonyar.ir/<slug>` صفحه‌ی سالن — نام، آدرس، ساعت
+کاری، خدمات و قیمت — را سمت سرور رندر می‌کند (nginx SSI با کش ۳۰ ثانیه‌ای)،
+پس لینکی که در واتس‌اپ یا اینستاگرام فرستاده می‌شود خود سالن را نشان می‌دهد،
+نه یک صفحه‌ی خالی.
+
+**یک هسته‌ی رزرو، دو در ورودی.** وب و بله از یک مسیر می‌گذرند: «هر آرایشگری»
+پیش‌فرض است و نزدیک‌ترین زمان‌های خالی اول می‌آیند. مشتری بدون ورود می‌گردد و
+فقط لحظه‌ی ثبت با کد یک‌بارمصرف تأیید می‌شود. در بله شماره با دیالوگ خود بله
+تأیید می‌شود، بدون تایپ، و حساب وب و بله یک هویت می‌شوند.
+
+**رزرو تکراری را دیتابیس رد می‌کند، نه کد.** ایجاد، لغو، جابه‌جایی، تأیید و رد
+نوبت، با پنجره‌ی لغو مخصوص هر آرایشگر. دو رزرو هم‌زمان روی یک زمان را یک
+exclusion constraint در PostgreSQL متوقف می‌کند، و یک تست همزمانی دقیقاً همین را
+می‌آزماید.
+
+**پنل موبایل‌محور برای سالن.** تقویم همه‌ی نوبت‌ها، ثبت نوبت تلفنی، و لینک و QR
+قابل چاپ. سالن خودش ثبت‌نام می‌کند و یک ویزارد خدمات پیش‌فرض، آرایشگرها و ساعت
+کاری را می‌چیند و در پایان لینک وب، QR، لینک بله و متن بیوی اینستاگرام را تحویل
+می‌دهد. پلن‌ها دوره‌ی آزمایشی دارند، سقف آرایشگر بر اساس پلن، و تبدیل روزهای
+باقی‌مانده هنگام تغییر پلن.
+
+**برای نیامدن مشتری:** یادآوری در بله با پیامک پشتیبان، و بیعانه با کیف پول
+بله. اعلان‌ها از صف BullMQ با الگوی outbox می‌روند؛ کد ورود از سرویس «سفیر» بله
+و پیامک کاوه‌نگار می‌آید، با محدودیت نرخ. استک production هر روز خودش بکاپ
+می‌گیرد و هشدارهایش را به بله می‌فرستد، و API با تنظیمات ناامن اصلاً بالا
+نمی‌آید.
+"""
+
+# ── GeekWare ────────────────────────────────────────────────────────────────
+_P9_PROBLEM_EN = """\
+Someone with an idea for a piece of software usually does not know how to write
+it down, and a long form sends them away. After the order, it scatters across
+phone calls, messengers and a spreadsheet: what state it is in, who answered,
+whether the payment arrived. And a payment gateway and an SMS panel are, at the
+start, a cost and a hassle that are not needed yet.
+"""
+
+_P9_BODY_EN = """\
+Node.js and Express 5 rendering on the server, storage in JSON files, and
+Bale's bot API — no front-end framework, installable as a PWA.
+
+**An order in three steps, by voice if you like.** One three-step form, shared
+by the order page and the MVP card on the home page, where recording a voice
+message — with a choice of microphone — can replace typing.
+
+**Two bots, one order.** The admin bot brings each order with its audio and
+status buttons: message the customer, a private note, search, `/stats`. A
+change in Bale shows in the panel at once, and the other way round. The
+customer bot takes orders inside Bale (text or voice), shows their status and
+carries messages to the team; after ordering on the site, one "track in Bale"
+button links the customer's chat to that order.
+
+**The admin's status is not the customer's.** Internal stages map onto a few
+plain ones for the customer, and a public tracking page opens with the
+tracking code.
+
+**Payment without a gateway.** Card-to-card: the receipt comes from the site or
+Bale, one button accepts or rejects it, and the order moves to "in progress" by
+itself. Polite payment reminders go out on days 1, 3, 7 and 14, and only
+between 10 am and 8 pm.
+
+Around it: the admin panel, a blog, an FAQ, and a catalogue of software types
+and plans.
+"""
+
+_P9_PROBLEM_DE = """\
+Wer eine Idee für eine Software hat, weiß meist nicht, wie man sie aufschreibt,
+und ein langes Formular schreckt ab. Nach der Bestellung zerfällt alles in
+Anrufe, Messenger und eine Tabelle: In welchem Stand ist sie, wer hat
+geantwortet, ist die Zahlung da? Und ein Zahlungs-Gateway oder ein SMS-Dienst
+sind am Anfang Kosten und Aufwand, die es noch nicht braucht.
+"""
+
+_P9_BODY_DE = """\
+Node.js und Express 5 mit Server-Rendering, Speicherung in JSON-Dateien und
+Bales Bot-API — kein Frontend-Framework, als PWA installierbar.
+
+**Eine Bestellung in drei Schritten, gern per Sprache.** Ein dreistufiges
+Formular, geteilt von Bestellseite und MVP-Karte der Startseite, in dem eine
+Sprachaufnahme — mit Mikrofonauswahl — das Tippen ersetzen kann.
+
+**Zwei Bots, eine Bestellung.** Der Admin-Bot bringt jede Bestellung mit Audio
+und Status-Buttons: Nachricht an den Kunden, interne Notiz, Suche, `/stats`.
+Eine Änderung in Bale erscheint sofort im Panel und umgekehrt. Der Kunden-Bot
+nimmt Bestellungen in Bale entgegen (Text oder Sprache), zeigt ihren Stand und
+leitet Nachrichten ans Team weiter; nach einer Bestellung auf der Website
+verknüpft ein Button „in Bale verfolgen" den Chat mit genau dieser Bestellung.
+
+**Der Admin-Status ist nicht der Kunden-Status.** Interne Stufen werden auf
+wenige einfache für den Kunden abgebildet, und eine öffentliche Seite zeigt den
+Stand über den Tracking-Code.
+
+**Zahlung ohne Gateway.** Überweisung von Karte zu Karte: Der Beleg kommt über
+Website oder Bale, ein Button nimmt ihn an oder lehnt ihn ab, und die
+Bestellung geht von selbst auf „in Arbeit". Höfliche Zahlungserinnerungen an
+den Tagen 1, 3, 7 und 14, nur zwischen 10 und 20 Uhr.
+
+Dazu: Admin-Panel, Blog, FAQ und ein Katalog von Softwarearten und Paketen.
+"""
+
+_P9_PROBLEM_FA = """\
+کسی که ایده‌ی یک نرم‌افزار را دارد معمولاً نمی‌داند چطور بنویسدش، و فرم بلند
+فراری‌اش می‌دهد. بعد از ثبت هم سفارش بین تلفن، پیام‌رسان و اکسل پخش می‌شود:
+وضعیتش کجاست، چه کسی جواب داده، پرداخت رسیده یا نه. و درگاه پرداخت و پنل
+پیامک، برای شروع کار، هزینه و دردسری است که هنوز لازم نیست.
+"""
+
+_P9_BODY_FA = """\
+Node.js و Express 5 با رندر سمت سرور، ذخیره در فایل JSON، و Bot API بله — بدون
+فریم‌ورک فرانت، و قابل نصب به‌عنوان PWA.
+
+**سفارش در سه قدم، با صدا اگر بخواهی.** یک فرم سه‌مرحله‌ای، مشترک بین صفحه‌ی
+سفارش و کارت MVP صفحه‌ی اصلی، که در آن ضبط پیام صوتی — با انتخاب میکروفون —
+جای نوشتن را می‌گیرد.
+
+**دو ربات، یک سفارش.** ربات ادمین هر سفارش را با فایل صوتی و دکمه‌های وضعیت
+می‌آورد: پیام به مشتری، یادداشت داخلی، جستجو، `/stats`. هر تغییر در بله فوراً در
+پنل دیده می‌شود و برعکس. ربات مشتری ثبت سفارش از داخل بله (متن یا ویس)، دیدن
+وضعیت و پیام به تیم را ممکن می‌کند؛ و بعد از ثبت در سایت، دکمه‌ی «پیگیری سفارش
+در بله» چت مشتری را به همان سفارش وصل می‌کند.
+
+**وضعیت ادمین، وضعیت مشتری نیست.** مرحله‌های داخلی به چند مرحله‌ی ساده برای
+مشتری نگاشت می‌شوند، و صفحه‌ی پیگیری عمومی با کد پیگیری باز می‌شود.
+
+**پرداخت بدون درگاه.** کارت‌به‌کارت: رسید از سایت یا بله می‌رسد، با یک دکمه
+تأیید یا رد می‌شود، و سفارش خودش به «در حال ساخت» می‌رود. یادآوری محترمانه‌ی
+پرداخت در روزهای ۱، ۳، ۷ و ۱۴، و فقط بین ۱۰ صبح تا ۸ شب.
+
+کنارش پنل ادمین، وبلاگ، سوالات رایج و کاتالوگ انواع نرم‌افزار و پلن‌ها.
+"""
+
+# ── Podcast Workspace ───────────────────────────────────────────────────────
+_P10_PROBLEM_EN = """\
+A podcast's raw material — voice notes, ideas, notes, episode files — scatters
+across folders and messengers, and finding "that sentence in that episode"
+means listening again. The fix had to stay on the podcaster's own computer and
+work without the internet, transcription included.
+"""
+
+_P10_BODY_EN = """\
+A Windows desktop app in Python 3.12 and PySide6, on SQLite through SQLAlchemy
+and Alembic.
+
+**Clean layers.** Domain, repositories, services and UI are separate, and every
+heavy job — transcription, audio processing, import — runs off the UI thread,
+so the window never freezes.
+
+**Transcription on the machine.** faster-whisper turns audio into text locally,
+and SQLite FTS5 makes every transcript and note searchable in Persian.
+
+**A player made for notes.** A waveform, and notes pinned to an exact second
+that jump back to it.
+
+Episodes, seasons, ideas and tags in one place; voice notes imported from a
+Bale bot; and a checklist before each episode is published.
+"""
+
+_P10_PROBLEM_DE = """\
+Das Rohmaterial eines Podcasts — Sprachnotizen, Ideen, Notizen,
+Episodendateien — verteilt sich über Ordner und Messenger, und „diesen Satz in
+jener Episode" zu finden heißt, noch einmal zuzuhören. Die Lösung musste auf
+dem eigenen Rechner bleiben und ohne Internet funktionieren, die Transkription
+eingeschlossen.
+"""
+
+_P10_BODY_DE = """\
+Eine Windows-Desktop-App in Python 3.12 und PySide6, auf SQLite über
+SQLAlchemy und Alembic.
+
+**Saubere Schichten.** Domain, Repositories, Services und UI sind getrennt, und
+jede schwere Arbeit — Transkription, Audioverarbeitung, Import — läuft außerhalb
+des UI-Threads, damit das Fenster nie einfriert.
+
+**Transkription auf dem Rechner.** faster-whisper macht lokal Text aus Audio,
+und SQLite FTS5 macht jedes Transkript und jede Notiz auf Persisch durchsuchbar.
+
+**Ein Player für Notizen.** Eine Wellenform und Notizen, die an einer exakten
+Sekunde hängen und dorthin zurückspringen.
+
+Episoden, Staffeln, Ideen und Tags an einem Ort; Sprachnotizen aus einem
+Bale-Bot importiert; und eine Checkliste vor jeder Veröffentlichung.
+"""
+
+_P10_PROBLEM_FA = """\
+مواد خام یک پادکست — ویس، ایده، یادداشت، فایل اپیزود — بین پوشه‌ها و پیام‌رسان
+پخش می‌شود، و پیدا کردن «آن جمله در آن اپیزود» یعنی دوباره گوش دادن. راه‌حل
+باید روی کامپیوتر خود پادکستر بماند و بدون اینترنت کار کند، پیاده‌سازی متن هم.
+"""
+
+_P10_BODY_FA = """\
+اپ دسکتاپ ویندوز با Python 3.12 و PySide6، روی SQLite از طریق SQLAlchemy و
+Alembic.
+
+**لایه‌های تمیز.** domain، repositories، services و ui از هم جدا هستند، و هر کار
+سنگین — پیاده‌سازی متن، پردازش صدا، وارد کردن فایل — بیرون از UI thread اجرا
+می‌شود تا پنجره هیچ‌وقت قفل نشود.
+
+**پیاده‌سازی متن روی خود دستگاه.** faster-whisper صدا را به‌صورت محلی به متن
+تبدیل می‌کند، و SQLite FTS5 هر متن و یادداشتی را به فارسی جستجوپذیر می‌کند.
+
+**پلیری برای یادداشت.** waveform، و یادداشت‌هایی که روی ثانیه‌ی مشخص می‌نشینند
+و با یک کلیک به همان‌جا برمی‌گردند.
+
+اپیزودها، فصل‌ها، ایده‌ها و تگ‌ها در یک جا؛ وارد کردن ویس از ربات بله؛ و یک
+چک‌لیست پیش از انتشار هر اپیزود.
 """
