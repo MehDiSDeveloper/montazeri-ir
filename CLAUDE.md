@@ -54,6 +54,11 @@ from the same image once `web` is healthy — locally there is no public address
 for a webhook. Production is `docker-compose.yml` + `start.sh` alone: one
 service, WAL, webhook.
 
+Both dev services are `restart: "no"`. The bot used to be `on-failure:3`, and
+Docker counted Docker Desktop shutting down as a failure, so it started the
+bot by itself every time Docker Desktop opened. It runs only when `compose up`
+is run.
+
 Tests live in `tests/` and run inside the container with
 `docker compose exec web python manage.py test tests`. Under `test`,
 `settings.py` removes `DJANGO_BOT_*` from the environment — compose's
