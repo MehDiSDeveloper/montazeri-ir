@@ -208,6 +208,7 @@
       <div class="ftr-bottom">
         <small>© {% now "Y" %} {{ profile|tr:"full_name" }} — {% t "footer.rights" %}</small>
         <div class="ftr-meta">
+          <a href="https://geekware.ir" target="_blank" rel="noopener">{% t "footer.built_by" %} GeekWare.ir</a>
           <a href="{% url 'feed' %}"><svg aria-hidden="true"><use href="#i-rss"></use></svg>RSS</a>
           <a href="{% url 'sitemap' %}"><svg aria-hidden="true"><use href="#i-map"></use></svg>{% t "footer.sitemap" %}</a>
           <button type="button" data-to-top><svg aria-hidden="true"><use href="#i-arrow-up"></use></svg>{% t "footer.top" %}</button>

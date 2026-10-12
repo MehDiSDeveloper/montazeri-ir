@@ -393,6 +393,7 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "err.home": {"fa": "بازگشت به خانه", "en": "Back home", "de": "Zur Startseite"},
     "footer.rights": {"fa": "همهٔ حقوق محفوظ است.", "en": "All rights reserved.", "de": "Alle Rechte vorbehalten."},
+    "footer.built_by": {"fa": "ساخته شده توسط", "en": "Built by", "de": "Erstellt von"},
     "footer.built": {"fa": "ساخته‌شده با جنگو", "en": "Built with Django", "de": "Gebaut mit Django"},
 
     # ── command palette ───────────────────────────────────────────────────
